@@ -72,10 +72,6 @@ def get_dataframe(json_path: str) -> pd.DataFrame:
 
         # Get the passages dataframe
         passages_df = pd.json_normalize(data, max_level=0)
-        
-        # Remove additional answers from the dataframe if present
-        if 'additional_answers' in passages_df:
-            passages_df.drop('additional_answers', axis=1, inplace=True)
 
         # Concatenate column-wise the questions and answers dataframes and merge them with the passages dataframe on key `id`
         questions_and_answers_df = pd.concat([questions_df, answers_df], axis=1, join='inner')
