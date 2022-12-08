@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader
@@ -50,8 +51,10 @@ class _Dataset(torch.utils.data.Dataset):
         question = row['question']
         answer = row['answer']
         history = row['history']
-
-        return (passage, question, history), answer
+        span_start = row['answer_span_start']
+        span_end = row['answer_span_end']
+        
+        return (passage, question, ' <sep> '.join(history)), (answer, span_start, span_end)
 
 def get_dataloader(df: pd.DataFrame, batch_size: int = 16, shuffle: bool = True) -> DataLoader:
     """Get a dataloader for a given dataframe.

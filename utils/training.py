@@ -66,7 +66,8 @@ def train_tokenImportancesExtractor(train_dataloader, token_importances_extracto
         start_time = time.time()
         for batch_idx, data in enumerate(train_dataloader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            (passage, question), (answer, sep_starts, sep_ends) = data
+            (passage, question, history), (_, sep_starts, sep_ends) = data
+            history = (h.split(' <sep> ') for h in history)
 
             inputs = tokenizer(
                         question,
@@ -152,7 +153,8 @@ def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_
         start_time = time.time()
         for batch_idx, data in enumerate(train_dataloader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            (passage, question), (answer, sep_starts, sep_ends) = data
+            (passage, question, history), (answer, _, _) = data
+            history = (h.split(' <sep> ') for h in history)
             
             inputs = tokenizer(
                         question,
