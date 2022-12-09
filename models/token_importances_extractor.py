@@ -4,13 +4,20 @@ from typing import Optional
 import torch.nn as nn
 from transformers import AutoModel
 
+from .linear_attention import LinearAttention
+
 
 class TokenImportancesExtractor(nn.Module):
 
-    def __init__(self, model_name : str):
+    def __init__(self, model_name : str, linear_attention=False, linearAttention_dims=128):
         super().__init__()
 
         self.encoder = AutoModel.from_pretrained(model_name)
+
+        if linear_attention:
+            for L in self.encoder.encoder.layer:
+                new_attention = LinearAttention(L.attention.self, k_dims=linearAttention_dims)
+                L.attention.self = new_attention
 
         self.linear = nn.Linear(self.encoder.config.hidden_size, 1)
 
