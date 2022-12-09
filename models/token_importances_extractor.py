@@ -26,5 +26,5 @@ class TokenImportancesExtractor(nn.Module):
 
         logits = self.linear(encoder_hidden_states)
 
-        return nn.functional.sigmoid(logits) 
+        return torch.sigmoid(logits) 
     

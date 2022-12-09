@@ -104,13 +104,13 @@ def train_tokenImportancesExtractor(train_dataloader, token_importances_extracto
             history = (h.split(' <sep> ') for h in history)
 
             inputs = tokenizer(
-                        question,
-                        passage,
-                        max_length=512,
-                        truncation=True,
-                        padding=True,
-                        return_tensors="pt",
-                    ).to(device)
+                question,
+                passage,
+                max_length=512,
+                truncation=True,
+                padding=True,
+                return_tensors="pt",
+            ).to(device)
             
             pred = token_importances_extractor.forward(inputs.input_ids,
                                 inputs.attention_mask)
@@ -194,16 +194,16 @@ def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_
             history = (h.split(' <sep> ') for h in history)
             
             inputs = tokenizer(
-                        question,
-                        passage,
-                        max_length=512,
-                        truncation=True,
-                        padding=True,
-                        return_tensors="pt",
-                    ).to(device)
+                question,
+                passage,
+                max_length=512,
+                truncation=True,
+                padding=True,
+                return_tensors="pt",
+            ).to(device)
 
             labels = tokenizer(
-                answer,
+                list(answer),
                 max_length=512,
                 truncation=True,
                 padding=True,
