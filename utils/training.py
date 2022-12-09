@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 
-def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, learnin_rates=None, steps_per_update=2, 
+def train(train_dataloader, model, model_name, use_history=False, epochs=(2,1,0), optimizers=None, learnin_rates=None, steps_per_update=2, 
           steps_empty_cache=None, seed=None, device : str ='cpu', plot=False):
 
     token_importances_extractor = model.token_importances_extractor
@@ -33,7 +33,7 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
 
     print('Training phase 1')
     loss_history1 = train_tokenImportancesExtractor(train_dataloader, token_importances_extractor, tokenizer, model_name,
-                                                    epochs=epochs1, optimizer=optim1, learning_rate=lr1, 
+                                                    use_history=use_history, epochs=epochs1, optimizer=optim1, learning_rate=lr1, 
                                                     steps_per_update=steps_per_update, 
                                                     steps_empty_cache=steps_empty_cache, 
                                                     seed=seed, device=device)
@@ -47,7 +47,7 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
 
     print('Training phase 2')
     loss_history2 = train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_decoder, tokenizer, model_name,
-                                         epochs=epochs2, optimizer=optim2, learning_rate=lr2, 
+                                         use_history=use_history, epochs=epochs2, optimizer=optim2, learning_rate=lr2, 
                                          steps_per_update=steps_per_update, steps_empty_cache=steps_empty_cache, seed=seed,
                                          device=device)
     print()
@@ -60,7 +60,7 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
 
     print('Training phase 3')
     loss_history3 = train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_decoder, tokenizer, model_name,
-                                         train_tokenImportancesExtractor=True, epochs=epochs3, optimizer=optim3, 
+                                         use_history=use_history, train_tokenImportancesExtractor=True, epochs=epochs3, optimizer=optim3, 
                                          learning_rate=lr3, steps_per_update=steps_per_update, seed=seed,
                                          steps_empty_cache=steps_empty_cache, device=device)
     if plot and epochs3>0:
@@ -87,8 +87,8 @@ def loss_func_tokenImportancesExtractor(probs, target):
     loss+= - torch.log(1-probs) * (1-target) / (torch.sum(1-target, 1, keepdim=True)+1)
     return torch.mean(torch.sum(loss,(1,2)))
 
-def train_tokenImportancesExtractor(train_dataloader, token_importances_extractor, tokenizer, model_name, epochs=1, 
-                                    optimizer=None,
+def train_tokenImportancesExtractor(train_dataloader, token_importances_extractor, tokenizer, model_name, use_history=False,
+                                    epochs=1, optimizer=None,
                                     learning_rate=1e-5, loss_history=[], steps_per_update=1, steps_empty_cache=None, 
                                     seed=None,
                                     device : str = 'cpu'):
@@ -107,7 +107,11 @@ def train_tokenImportancesExtractor(train_dataloader, token_importances_extracto
         for batch_idx, data in enumerate(train_dataloader, 0):
             # get the inputs; data is a list of [inputs, labels]
             (passage, question, history), (_, sep_starts, sep_ends) = data
-            history = (h.split(' <sep> ') for h in history)
+            history = tuple([h.split(' <sep> ') for h in history])
+            
+            if use_history:
+                separator = f' {tokenizer.sep_token} '
+                question = tuple([q + f'{separator if len(h) else ""}' + separator.join(h) for q, h in zip(question, history)])
 
             inputs = tokenizer(
                 question,
@@ -172,15 +176,13 @@ def train_tokenImportancesExtractor(train_dataloader, token_importances_extracto
     return loss_history
 
 
-def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_decoder, tokenizer, model_name,
-                         train_tokenImportancesExtractor=False, epochs=3, optimizer=None, learning_rate=1e-5, loss_history=[],  
-                         steps_per_update=1, steps_empty_cache=None, seed=None, device : str = 'cpu'):
+def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_decoder, tokenizer, model_name, 
+                         use_history=False, train_tokenImportancesExtractor=False, epochs=3, optimizer=None, 
+                         learning_rate=1e-5, loss_history=[], steps_per_update=1, steps_empty_cache=None, seed=None, 
+                         device : str = 'cpu'):
 
     #token_importances_extractor.to('cuda')
     #encoder_decoder.to('cuda')
-
-    encoder_decoder.config.decoder_start_token_id = tokenizer.cls_token_id
-    encoder_decoder.config.pad_token_id = tokenizer.pad_token_id
 
     if optimizer is None:
         if train_tokenImportancesExtractor:
@@ -198,7 +200,11 @@ def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_
         for batch_idx, data in enumerate(train_dataloader, 0):
             # get the inputs; data is a list of [inputs, labels]
             (passage, question, history), (answer, _, _) = data
-            history = (h.split(' <sep> ') for h in history)
+            history = tuple([h.split(' <sep> ') for h in history])
+            
+            if use_history:
+                separator = f' {tokenizer.sep_token} '
+                question = tuple([q + f'{separator if len(h) else ""}' + separator.join(h) for q, h in zip(question, history)])
             
             inputs = tokenizer(
                 question,
