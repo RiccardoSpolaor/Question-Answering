@@ -39,8 +39,7 @@ class Model(torch.nn.Module):
 
         # Add history to question if present
         if history is not None:
-            separator = f' {self.tokenizer.sep_token} '
-            question_and_history = question + f'{separator if len(history) else ""}' + separator.join(history)
+            question_and_history=[q + self.tokenizer.sep_token + h for q, h in zip(question, history)]
         else:
             question_and_history = question
 
@@ -67,6 +66,6 @@ class Model(torch.nn.Module):
             generated_ids = self.encoder_decoder.generate(inputs.input_ids, token_importances=token_importances_output, 
                                                           **generation_params)
 
-            generated_text = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+            generated_text = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 
         return generated_text
