@@ -1,21 +1,23 @@
 import torch
 
-from transformers import EncoderDecoderModel, AutoTokenizer, PreTrainedTokenizer 
+from transformers import AutoTokenizer, PreTrainedTokenizer 
 
 from .token_importances_extractor import TokenImportancesExtractor
-from .encoder_decoder_distilroberta import build_encoder_decoder_distilroberta
+from .encoder_decoder import build_encoder_decoder
 
 from typing import List, Optional
 
 class Model(torch.nn.Module):
-    def __init__(self, model_name : str, tokenizer: Optional[PreTrainedTokenizer] = None, device : str = 'cpu'):
+    def __init__(self, model_name : str, tokenizer: Optional[PreTrainedTokenizer] = None, linear_attention=False, 
+                linearAttention_dims=128, device : str = 'cpu'):
         super().__init__()
         self.model_name = model_name 
         self.device = device
 
         self.token_importances_extractor = TokenImportancesExtractor(model_name)
         self.token_importances_extractor.to(device)
-        self.encoder_decoder = build_encoder_decoder_distilroberta()
+        self.encoder_decoder = build_encoder_decoder(model_name=model_name, linear_attention=linear_attention,
+                                                     linearAttention_dims=linearAttention_dims)
         self.encoder_decoder.to(device)
 
         if tokenizer is None:

@@ -18,12 +18,10 @@ from transformers.modeling_outputs import (
     BaseModelOutputWithPoolingAndCrossAttentions,
 )
 
-#from linear_attention import LinearAttention
 
 
-
-"""def build_encoder_decoder_distilroberta(linear_attention=False, linearAttention_dims=128):
-    model_name = 'distilroberta-base'
+"""def build_encoder_decoder_bertTiny():
+    model_name = 'prajjwal1/bert-tiny'
     encoder_decoder = EncoderDecoderModel.from_encoder_decoder_pretrained(model_name, model_name)
 
     # funcType = type(encoder_decoder.forward)
@@ -43,15 +41,11 @@ from transformers.modeling_outputs import (
 
         L.linear = linear 
 
-        if linear_attention:
-            new_attention = LinearAttention(L.attention.self, k_dims=linearAttention_dims)
-            L.attention.self = new_attention
-
     return encoder_decoder"""
 
 
 
-def _forward_encdec_overridden_roberta(
+def _forward_encdec_overridden_bertTiny(
     self,
     input_ids: Optional[torch.LongTensor] = None,
     token_importances: Optional[torch.LongTensor] = None,
@@ -172,8 +166,7 @@ def _forward_encdec_overridden_roberta(
     )
 
 
-
-def _forward_enc_overridden_roberta(
+def _forward_enc_overridden_bertTiny(
     self,
     input_ids: Optional[torch.Tensor] = None,
     token_importances: Optional[torch.LongTensor] = None,
@@ -274,7 +267,6 @@ def _forward_enc_overridden_roberta(
         inputs_embeds=inputs_embeds,
         past_key_values_length=past_key_values_length,
     )
-    
     encoder_outputs = self.encoder(
         embedding_output,
         token_importances=token_importances,
@@ -307,7 +299,7 @@ def _forward_enc_overridden_roberta(
 
 logger = logging.get_logger(__name__)
 
-def _forward_encenc_overridden_roberta(
+def _forward_encenc_overridden_bertTiny(
     self,
     hidden_states: torch.Tensor,
     token_importances: Optional[torch.LongTensor] = None,
@@ -399,4 +391,3 @@ def _forward_encenc_overridden_roberta(
         attentions=all_self_attentions,
         cross_attentions=all_cross_attentions,
     )
-
