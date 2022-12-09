@@ -45,8 +45,9 @@ def train(train_dataloader, validation_dataframe: pd.DataFrame, model, model_nam
         plt.xlabel('Epochs')
         plt.title('Training history first phase')
     
-    with torch.no_grad():
-        f1_squad = validate(model, validation_dataframe, use_history=use_history)
+    # this is completely useless
+    #with torch.no_grad():
+    #    f1_squad = validate(model, validation_dataframe, use_history=use_history)
 
     print()
     print(f'Validation f1 squad after the first phase: {f1_squad}' )
@@ -191,11 +192,10 @@ def train_tokenImportancesExtractor(train_dataloader, token_importances_extracto
             # TODO end
             print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}")#, end = '\r')
 
-            _save_model_parameters(model=token_importances_extractor, model_name=model_name, model_type='TokenImportancesExtractor',
-                                   seed=seed)
-
         print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}")
 
+        _save_model_parameters(model=token_importances_extractor, model_name=model_name, model_type='TokenImportancesExtractor',
+                                   seed=seed)
     return loss_history
 
 
@@ -279,12 +279,12 @@ def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_
             # TODO end
             print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}")#, end='\r')
 
-            _save_model_parameters(model=encoder_decoder, model_name=model_name, model_type='EncoderDecoder', 
-                                   seed=seed)
-            if train_tokenImportancesExtractor:
-                _save_model_parameters(model=token_importances_extractor, model_name=model_name, model_type='TokenImportancesExtractor', 
-                                       seed=seed)
-
         print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}")
+
+        _save_model_parameters(model=encoder_decoder, model_name=model_name, model_type='EncoderDecoder', 
+                                   seed=seed)
+        if train_tokenImportancesExtractor:
+            _save_model_parameters(model=token_importances_extractor, model_name=model_name, model_type='TokenImportancesExtractor', 
+                                    seed=seed)
 
     return loss_history
