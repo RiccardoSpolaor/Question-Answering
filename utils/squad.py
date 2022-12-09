@@ -17,6 +17,10 @@ import pandas as pd
 import re
 import string
 from typing import List, Union
+import time
+
+import numpy as np
+import torch
 
 from models.model import Model
 
@@ -91,11 +95,27 @@ def _compute_squad_f1(gold_answer: str, predicted_answer: str) -> float:
     f1 = (2 * precision * recall) / (precision + recall)
     return f1
 
-def validate(model: Model, validation_dataframe: pd.DataFrame, use_history: bool = False):
-    return validation_dataframe.apply(lambda row: 
-        compute_squad_f1(row['answer'], 
-                         model.generate(row['story'], row['question'], row['history'] if use_history else None)),
-        axis=1).mean()
+def validate(model: Model, val_dataloader, use_history: bool = False):
+    tot_f1=0
+    n=0
+    t0=time.time()
+
+    torch.cuda.empty_cache()
+
+    for batch_idx, data in enumerate(val_dataloader, 0):
+        
+        with torch.no_grad():
+            # get the inputs; data is a list of [inputs, labels]
+            (passage, question, history), (answer, _, _) = data
+            
+            pred=model.generate(passage,question,history if use_history else None)
+            
+            tot_f1 += np.sum([_compute_squad_f1(gold,predicet) for gold, predicet in zip(answer,pred)])
+            n += len(question) if isinstance(question,tuple) else 1
+
+        print(f"{batch_idx + 1}/{len(val_dataloader)}, {(time.time()-t0):.0f}s {(time.time()-t0)/(batch_idx+1)*1e3:.0f}ms/step, mean F1: {tot_f1/n}",end='\r')
+    
+    return tot_f1/n
 
 def compute_squad_f1(gold_answers: Union[List[str], str], predicted_answers: Union[List[str], str]) -> float:
     """Compute the average SQuAD f1 score on a series of true and predicted answers.
