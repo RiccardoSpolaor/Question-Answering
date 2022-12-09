@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, learnin_rates=None, steps_per_update=2, 
-          steps_empty_cache=None, parameters_file_end='', device : str ='cpu', plot=False):
+          steps_empty_cache=None, seed=None, device : str ='cpu', plot=False):
 
     token_importances_extractor = model.token_importances_extractor
     encoder_decoder = model.encoder_decoder
@@ -34,8 +34,8 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
     loss_history1 = train_tokenImportancesExtractor(train_dataloader, token_importances_extractor, tokenizer, model_name,
                                                     epochs=epochs1, optimizer=optim1, learning_rate=lr1, 
                                                     steps_per_update=steps_per_update, 
-                                                    steps_empty_cache=steps_empty_cache, parameters_file_end=parameters_file_end,
-                                                    device=device)
+                                                    steps_empty_cache=steps_empty_cache, 
+                                                    seed=seed, device=device)
     if plot and epochs1>0:
         plt.plot(loss_history1)
         plt.xlabel('Epochs')
@@ -45,8 +45,7 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
 
     loss_history2 = train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_decoder, tokenizer, model_name,
                                          epochs=epochs2, optimizer=optim2, learning_rate=lr2, 
-                                         steps_per_update=steps_per_update, steps_empty_cache=steps_empty_cache, 
-                                         parameters_file_end=parameters_file_end,
+                                         steps_per_update=steps_per_update, steps_empty_cache=steps_empty_cache, seed=seed,
                                          device=device)
     if plot and epochs2>0:
         plt.plot(loss_history2)
@@ -57,7 +56,7 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
 
     loss_history3 = train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_decoder, tokenizer, model_name,
                                          train_tokenImportancesExtractor=True, epochs=epochs3, optimizer=optim3, 
-                                         learning_rate=lr3, steps_per_update=steps_per_update, 
+                                         learning_rate=lr3, steps_per_update=steps_per_update, seed=seed,
                                          steps_empty_cache=steps_empty_cache, device=device)
     if plot and epochs3>0:
         plt.plot(loss_history3)
@@ -68,10 +67,13 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
 
 
 
-def _save_model_parameters(model, model_name, model_type, suffix=''):
-    os.makedirs('./weigths', exist_ok=True)
-    file_name = f'{model_name}_{model_type}_{suffix}.pt'
-    file_path = os.path.join('./weigths', file_name)
+def _save_model_parameters(model, model_name, model_type, seed=None):
+    folder_name = './weigths'
+    if seed is not None:
+        folder_name = os.path.join(folder_name, f'seed{seed}')
+    os.makedirs(folder_name, exist_ok=True)
+    file_name = f'{model_name}_{model_type}.pt'
+    file_path = os.path.join(folder_name, file_name)
     torch.save(model.state_dict(), file_path)
 
 def loss_func_tokenImportancesExtractor(probs, target):
@@ -82,7 +84,7 @@ def loss_func_tokenImportancesExtractor(probs, target):
 def train_tokenImportancesExtractor(train_dataloader, token_importances_extractor, tokenizer, model_name, epochs=1, 
                                     optimizer=None,
                                     learning_rate=1e-5, loss_history=[], steps_per_update=1, steps_empty_cache=None, 
-                                    parameters_file_end='',
+                                    seed=None,
                                     device : str = 'cpu'):
     
     #token_importances_extractor.to('cuda')
@@ -156,7 +158,7 @@ def train_tokenImportancesExtractor(train_dataloader, token_importances_extracto
             print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}", end = '\r')
 
             _save_model_parameters(model=token_importances_extractor, model_name=model_name, model_type='TokenImportancesExtractor',
-                                suffix=parameters_file_end)
+                                   seed=seed)
 
         print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}")
 
@@ -165,7 +167,7 @@ def train_tokenImportancesExtractor(train_dataloader, token_importances_extracto
 
 def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_decoder, tokenizer, model_name,
                          train_tokenImportancesExtractor=False, epochs=3, optimizer=None, learning_rate=1e-5, loss_history=[],  
-                         steps_per_update=1, steps_empty_cache=None, parameters_file_end='', device : str = 'cpu'):
+                         steps_per_update=1, steps_empty_cache=None, seed=None, device : str = 'cpu'):
 
     #token_importances_extractor.to('cuda')
     #encoder_decoder.to('cuda')
@@ -241,10 +243,10 @@ def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_
             print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}", end='\r')
 
             _save_model_parameters(model=encoder_decoder, model_name=model_name, model_type='EncoderDecoder', 
-                                   suffix=parameters_file_end)
+                                   seed=seed)
             if train_tokenImportancesExtractor:
                 _save_model_parameters(model=token_importances_extractor, model_name=model_name, model_type='TokenImportancesExtractor', 
-                                       suffix=parameters_file_end)
+                                       seed=seed)
 
         print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}")
 
