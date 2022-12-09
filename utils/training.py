@@ -31,11 +31,13 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
     else:
         lr1, lr2, lr3 = 1e-5, 1e-5, 1e-5
 
+    print('Training phase 1')
     loss_history1 = train_tokenImportancesExtractor(train_dataloader, token_importances_extractor, tokenizer, model_name,
                                                     epochs=epochs1, optimizer=optim1, learning_rate=lr1, 
                                                     steps_per_update=steps_per_update, 
                                                     steps_empty_cache=steps_empty_cache, 
                                                     seed=seed, device=device)
+    print()
     if plot and epochs1>0:
         plt.plot(loss_history1)
         plt.xlabel('Epochs')
@@ -43,10 +45,12 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
 
     # torch.cuda.empty_cache()
 
+    print('Training phase 2')
     loss_history2 = train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_decoder, tokenizer, model_name,
                                          epochs=epochs2, optimizer=optim2, learning_rate=lr2, 
                                          steps_per_update=steps_per_update, steps_empty_cache=steps_empty_cache, seed=seed,
                                          device=device)
+    print()
     if plot and epochs2>0:
         plt.plot(loss_history2)
         plt.xlabel('Epochs')
@@ -54,6 +58,7 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
 
     # torch.cuda.empty_cache()
 
+    print('Training phase 3')
     loss_history3 = train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_decoder, tokenizer, model_name,
                                          train_tokenImportancesExtractor=True, epochs=epochs3, optimizer=optim3, 
                                          learning_rate=lr3, steps_per_update=steps_per_update, seed=seed,
@@ -62,6 +67,7 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
         plt.plot(loss_history3)
         plt.xlabel('Epochs')
         plt.title('Training history third phase')
+    print()
 
     # torch.cuda.empty_cache()
 
@@ -155,7 +161,8 @@ def train_tokenImportancesExtractor(train_dataloader, token_importances_extracto
             epoch_time = time.time() - start_time
             batch_time = epoch_time/(batch_idx+1)
 
-            print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}", end = '\r')
+            # TODO end
+            print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}")#, end = '\r')
 
             _save_model_parameters(model=token_importances_extractor, model_name=model_name, model_type='TokenImportancesExtractor',
                                    seed=seed)
@@ -240,7 +247,8 @@ def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_
             epoch_time = time.time() - start_time
             batch_time = epoch_time/(batch_idx+1)
             
-            print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}", end='\r')
+            # TODO end
+            print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}")#, end='\r')
 
             _save_model_parameters(model=encoder_decoder, model_name=model_name, model_type='EncoderDecoder', 
                                    seed=seed)
