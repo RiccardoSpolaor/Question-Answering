@@ -15,8 +15,7 @@ class _Dataset(torch.utils.data.Dataset):
         df : DataFrame
             The pandas `DataFrame` from which the dataset is created
         """
-        self.df = df.copy()
-        self.df.reset_index(drop=True, inplace=True)
+        self.df = df[['story','question','history', 'answer' ,'answer_span_start','answer_span_end']].to_numpy()
 
     def __len__(self) -> int:
         """Get the length of the dataset
@@ -43,17 +42,8 @@ class _Dataset(torch.utils.data.Dataset):
             * A tuple of the passage, the question and the history as its first element
             * The answer as its second element
         """
-        # Get the row at index `index`
-        row = self.df.iloc[index]
-
-        # Get information
-        passage = row['story']
-        question = row['question']
-        answer = row['answer']
-        history = row['history']
-        span_start = row['answer_span_start']
-        span_end = row['answer_span_end']
-        
+        passage, question, history, answer, span_start, span_end = self.df[index]
+         
         return (passage, question, ' <sep> '.join(history)), (answer, span_start, span_end)
 
 def get_dataloader(df: pd.DataFrame, batch_size: int = 16, shuffle: bool = True) -> DataLoader:
