@@ -29,7 +29,7 @@ def train(train_dataloader, model, model_name, epochs=(2,1,0), optimizers=None, 
         lr2 = learnin_rates[1]
         lr3 = learnin_rates[2]
     else:
-        lr1, lr2, lr3 = None, None, None
+        lr1, lr2, lr3 = 1e-5, 1e-5, 1e-5
 
     loss_history1 = train_tokenImportancesExtractor(train_dataloader, token_importances_extractor, tokenizer, model_name,
                                                     epochs=epochs1, optimizer=optim1, learning_rate=lr1, 
