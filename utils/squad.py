@@ -13,7 +13,6 @@ Modifications
 """
 
 import collections
-from collections.abc import Iterable
 import pandas as pd
 import re
 import string
@@ -98,7 +97,7 @@ def validate(model: Model, validation_dataframe: pd.DataFrame, use_history: bool
                          model.generate(row['story'], row['question'], row['history'] if use_history else None)),
         axis=1).mean()
 
-def compute_squad_f1(gold_answers: Union[Iterable[str], str], predicted_answers: Union[Iterable[str], str]) -> float:
+def compute_squad_f1(gold_answers: Union[List[str], str], predicted_answers: Union[List[str], str]) -> float:
     """Compute the average SQuAD f1 score on a series of true and predicted answers.
 
     Parameters
@@ -113,7 +112,7 @@ def compute_squad_f1(gold_answers: Union[Iterable[str], str], predicted_answers:
         The average SQuAD f1 score on the batch.
     """
     # Assert that `gold_answers` and `predicted_answers` are either both iterables or strings.
-    assert (isinstance(gold_answers, Iterable) and isinstance(predicted_answers, Iterable)) \
+    assert (isinstance(gold_answers, list) and isinstance(predicted_answers, list)) \
         or (type(gold_answers) == str and type(predicted_answers) == str), \
         '`gold_answers` and `predicted_answers` must be either both iterables or strings'
 
