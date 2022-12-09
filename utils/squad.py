@@ -14,9 +14,12 @@ Modifications
 
 import collections
 from collections.abc import Iterable
+import pandas as pd
 import re
 import string
 from typing import List, Union
+
+from models.model import Model
 
 def _normalize_answer(answer: str) -> str:
     """Lower text and remove punctuation, articles and extra whitespace from an answer.
@@ -88,6 +91,12 @@ def _compute_squad_f1(gold_answer: str, predicted_answer: str) -> float:
     
     f1 = (2 * precision * recall) / (precision + recall)
     return f1
+
+def validate(model: Model, validation_dataframe: pd.DataFrame, use_history: bool = False):
+    return validation_dataframe.apply(lambda row: 
+        compute_squad_f1(row['answer'], 
+                         model.generate(row['story'], row['question'], row['history'] if use_history else None)),
+        axis=1).mean()
 
 def compute_squad_f1(gold_answers: Union[Iterable[str], str], predicted_answers: Union[Iterable[str], str]) -> float:
     """Compute the average SQuAD f1 score on a series of true and predicted answers.

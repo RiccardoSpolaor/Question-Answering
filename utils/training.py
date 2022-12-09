@@ -1,12 +1,14 @@
 import os
-import torch 
+import pandas as pd
+import torch
 import time
 
 import matplotlib.pyplot as plt
 
+from .squad import validate
 
 
-def train(train_dataloader, model, model_name, use_history=False, epochs=(2,1,0), optimizers=None, learnin_rates=None, steps_per_update=2, 
+def train(train_dataloader, validation_dataframe: pd.DataFrame, model, model_name, use_history=False, epochs=(2,1,0), optimizers=None, learnin_rates=None, steps_per_update=2, 
           steps_empty_cache=None, seed=None, device : str ='cpu', plot=False):
 
     token_importances_extractor = model.token_importances_extractor
@@ -42,6 +44,13 @@ def train(train_dataloader, model, model_name, use_history=False, epochs=(2,1,0)
         plt.plot(loss_history1)
         plt.xlabel('Epochs')
         plt.title('Training history first phase')
+    
+    with torch.no_grad():
+        f1_squad = validate(model, validation_dataframe, use_history=use_history)
+
+    print()
+    print(f'Validation f1 squad after the first phase: {f1_squad}' )
+    print()
 
     # torch.cuda.empty_cache()
 
@@ -50,12 +59,17 @@ def train(train_dataloader, model, model_name, use_history=False, epochs=(2,1,0)
                                          use_history=use_history, epochs=epochs2, optimizer=optim2, learning_rate=lr2, 
                                          steps_per_update=steps_per_update, steps_empty_cache=steps_empty_cache, seed=seed,
                                          device=device)
-    print()
     if plot and epochs2>0:
         plt.plot(loss_history2)
         plt.xlabel('Epochs')
         plt.title('Training history second phase')
-
+    
+    with torch.no_grad():
+        f1_squad = validate(model, validation_dataframe, use_history=use_history)
+    
+    print()
+    print(f'Validation f1 squad after the second phase: {f1_squad}' )
+    print()
     # torch.cuda.empty_cache()
 
     print('Training phase 3')
@@ -67,7 +81,16 @@ def train(train_dataloader, model, model_name, use_history=False, epochs=(2,1,0)
         plt.plot(loss_history3)
         plt.xlabel('Epochs')
         plt.title('Training history third phase')
-    print()
+    
+    if epochs3>0:
+        with torch.no_grad():
+            f1_squad = validate(model, validation_dataframe, use_history=use_history)
+        print()
+        print(f'Validation f1 squad after the phase 3: {f1_squad}' )
+        print()
+        
+    else:
+        print()
 
     # torch.cuda.empty_cache()
 
