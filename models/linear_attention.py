@@ -51,9 +51,6 @@ class LinearAttention(nn.Module):
         # such that the encoder's padding tokens are not attended to.
         is_cross_attention = encoder_hidden_states is not None
 
-        if torch.any(torch.isnan(hidden_states)):
-            print('0')
-
         if is_cross_attention and past_key_value is not None:
             # reuse k,v, cross_attentions
             key_layer = past_key_value[0]
@@ -73,13 +70,6 @@ class LinearAttention(nn.Module):
             value_layer = self.transpose_for_scores(self.value(hidden_states))
 
         query_layer = self.transpose_for_scores(mixed_query_layer)
-
-        if torch.any(torch.isnan(key_layer)):
-            print('1_1')
-        if torch.any(torch.isnan(value_layer)):
-            print('1_2')
-        if torch.any(torch.isnan(query_layer)):
-            print('1_3')
 
         if self.is_decoder:
             # if cross_attention save Tuple(torch.Tensor, torch.Tensor) of all cross attention key/value_states.
@@ -101,29 +91,11 @@ class LinearAttention(nn.Module):
             else:
                 n_input = torch.max(torch.sum(attention_mask==0,dim=(1,2,3)))
 
-        #print(torch.mean(key_layer),torch.var(key_layer),'k')
-        #print(torch.mean(value_layer),torch.var(value_layer),'v')
-
         projected_keys = torch.matmul(self.E[:,:n_input], key_layer[:,:,:n_input])
         projected_values = torch.matmul(self.D[:,:n_input], value_layer[:,:,:n_input])
 
-        #print(torch.mean(self.E),torch.var(self.E),'E')
-
-        #print(torch.mean(projected_keys),torch.var(projected_keys),'pk')
-        #print(torch.mean(projected_values),torch.var(projected_values),'pv')
-
-        if torch.any(torch.isnan(projected_keys)):
-            print('2_1')
-        if torch.any(torch.isnan(projected_values)):
-            print('2_2')
-
-        #print(torch.mean(query_layer),torch.var(query_layer),'q')
-
         #attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
         projected_attention_scores = torch.matmul(query_layer, projected_keys.transpose(-1, -2))
-
-        if torch.any(torch.isnan(projected_attention_scores)):
-            print('3_1')
 
         if self.position_embedding_type == "relative_key" or self.position_embedding_type == "relative_key_query":
             raise NotImplementedError(" Linformer not compatible with relative keys")
@@ -134,41 +106,23 @@ class LinearAttention(nn.Module):
 
         #print(torch.mean(projected_attention_scores),torch.var(projected_attention_scores),'s')
 
-        if torch.any(torch.isnan(projected_attention_scores)):
-            print('3_2')
 
         # Normalize the attention scores to probabilities.
         #attention_probs = nn.functional.softmax(attention_scores, dim=-1)
         projected_attention_probs = nn.functional.softmax(projected_attention_scores, dim=-1)
-
-        if torch.any(torch.isnan(projected_attention_probs)):
-            print('4_1')
-            print(projected_attention_scores)
 
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.
         #attention_probs = self.dropout(attention_probs)
         projected_attention_probs = self.dropout(projected_attention_probs)
 
-        if torch.any(torch.isnan(projected_attention_probs)):
-            print('4_2')
-
         # Mask heads if we want to
         if head_mask is not None:
             projected_attention_probs = projected_attention_probs * head_mask
 
-        if torch.any(torch.isnan(projected_attention_probs)):
-            print('4_3')
-
         #context_layer = torch.matmul(attention_probs, value_layer)
         context_layer = torch.matmul(projected_attention_probs, projected_values)
 
-        #print(torch.mean(context_layer),torch.var(context_layer),'C')
-
-        if torch.any(torch.isnan(context_layer)):
-            print('5_1')
-
-        #print(projected_attention_probs)
 
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
