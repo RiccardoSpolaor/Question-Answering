@@ -97,8 +97,13 @@ def train(train_dataloader, val_dataloader, model, model_name, use_history=False
 
 
 
-def _save_model_parameters(model, model_name, model_type, seed=None):
-    folder_name = './weigths'
+def _save_model_parameters(model, model_name, model_type, seed=None, use_history=False):
+    
+    if use_history:
+        folder_name = './weigths/PQH'
+    else:
+        folder_name = './weigths/PQ'
+
     if seed is not None:
         folder_name = os.path.join(folder_name, f'seed{seed}')
     os.makedirs(folder_name, exist_ok=True)
@@ -195,7 +200,7 @@ def train_tokenImportancesExtractor(train_dataloader, token_importances_extracto
         print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}")
 
         _save_model_parameters(model=token_importances_extractor, model_name=model_name, model_type='TokenImportancesExtractor',
-                                   seed=seed)
+                                   seed=seed, use_history=use_history)
     return loss_history
 
 
@@ -282,9 +287,9 @@ def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_
         print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss/(batch_idx+1):.3g}")
 
         _save_model_parameters(model=encoder_decoder, model_name=model_name, model_type='EncoderDecoder', 
-                                   seed=seed)
+                                   seed=seed, use_history=use_history)
         if train_tokenImportancesExtractor:
             _save_model_parameters(model=token_importances_extractor, model_name=model_name, model_type='TokenImportancesExtractor', 
-                                    seed=seed)
+                                    seed=seed, use_history=use_history)
 
     return loss_history
