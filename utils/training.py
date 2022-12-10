@@ -49,9 +49,9 @@ def train(train_dataloader, val_dataloader, model, model_name, use_history=False
     #with torch.no_grad():
     #    f1_squad = validate(model, val_dataloader, use_history=use_history)
 
-    print()
-    print(f'Validation f1 squad after the first phase: {f1_squad}' )
-    print()
+    #print()
+    #print(f'Validation f1 squad after the first phase: {f1_squad}' )
+    #print()
 
     # torch.cuda.empty_cache()
 
