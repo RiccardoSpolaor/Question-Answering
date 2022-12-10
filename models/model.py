@@ -39,7 +39,9 @@ class Model(torch.nn.Module):
 
         # Add history to question if present
         if history is not None:
-            question_and_history=[q + self.tokenizer.sep_token + h for q, h in zip(question, history)]
+            history = tuple([h.split(' <sep> ') for h in history])
+            separator = f' {self.tokenizer.sep_token} '
+            question_and_history = tuple([q + f'{separator if len(h) else ""}' + separator.join(h) for q, h in zip(question, history)])
         else:
             question_and_history = question
 
