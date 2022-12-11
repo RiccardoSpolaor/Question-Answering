@@ -74,6 +74,37 @@ class Model(torch.nn.Module):
         return generated_text
 
 
+    def compute_token_importances(self, passage, question, span_start, span_end, history=None):
+        if history is not None:
+            history = tuple([h.split(' <sep> ') for h in history])
+            separator = f' {self.tokenizer.sep_token} '
+            question_and_history = tuple([q + f'{separator if len(h) else ""}' + separator.join(h) for q, h in zip(question, history)])
+        else:
+            question_and_history = question
+
+        inputs = self.tokenizer(
+                question_and_history,
+                passage,
+                max_length=512,
+                truncation=True,
+                padding=True,
+                return_tensors="pt",
+            ).to(self.device)
+
+        if generation_params is None:
+            generation_params = {
+                'do_sample' : False,
+                'num_beams' : 3,
+                'repetition_penalty' : 2.
+            }
+
+        with torch.no_grad():
+            token_importances_output = self.token_importances_extractor.forward(inputs.input_ids, inputs.attention_mask)
+
+        return token_importances_output
+
+
+
     def load_weigths(self, tokenImportancesExtractor_weigths_path : str, encoderDecoder_weigths_path : str):
         self.token_importances_extractor.load_state_dict(torch.load(tokenImportancesExtractor_weigths_path)) 
         self.encoder_decoder.load_state_dict(torch.load(encoderDecoder_weigths_path)) 
