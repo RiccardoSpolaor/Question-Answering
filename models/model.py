@@ -5,7 +5,7 @@ from transformers import AutoTokenizer, PreTrainedTokenizer
 from .token_importances_extractor import TokenImportancesExtractor
 from .encoder_decoder import build_encoder_decoder
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 class Model(torch.nn.Module):
     def __init__(self, model_name : str, tokenizer: Optional[PreTrainedTokenizer] = None, linear_attention=False, 
@@ -29,8 +29,9 @@ class Model(torch.nn.Module):
         self.encoder_decoder.config.pad_token_id = self.tokenizer.pad_token_id
 
 
-    def generate(self, passage : str, question : str, history : Optional[List[str]] = None, 
+    def generate(self, passage : Union[str,List[str]], question : Union[str,List[str]], history : Optional[Union[str,List[str]]] = None, 
                  generation_params : Optional[dict] = None) -> str:
+        # WORK ONLY IN BATCH
         # Set generation parameters.
         if generation_params is None:
             self.generation_params = { 'do_sample': False, 'num_beams': 3, 'repetition_penalty': 2. }
@@ -71,3 +72,8 @@ class Model(torch.nn.Module):
             generated_text = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 
         return generated_text
+
+
+    def load_weigths(self, tokenImportancesExtractor_weigths_path : str, encoderDecoder_weigths_path : str):
+        self.token_importances_extractor.load_state_dict(torch.load(tokenImportancesExtractor_weigths_path)) 
+        self.encoder_decoder.load_state_dict(torch.load(encoderDecoder_weigths_path)) 
