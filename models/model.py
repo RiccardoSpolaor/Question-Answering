@@ -91,13 +91,6 @@ class Model(torch.nn.Module):
                 return_tensors="pt",
             ).to(self.device)
 
-        if generation_params is None:
-            generation_params = {
-                'do_sample' : False,
-                'num_beams' : 3,
-                'repetition_penalty' : 2.
-            }
-
         with torch.no_grad():
             token_importances_output = self.token_importances_extractor.forward(inputs.input_ids, inputs.attention_mask)
 
