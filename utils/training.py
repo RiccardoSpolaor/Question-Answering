@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 import torch
 import time
 
@@ -293,3 +294,117 @@ def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_
                                     seed=seed, use_history=use_history)
 
     return loss_history
+
+
+def train_(train_dataloader, val_dataloader, model, model_name, use_history=False,
+            epochs=3, learning_rate=5e-5, optimizer=None, 
+            steps_per_update=1, steps_empty_cache=None, steps_validate=None,
+            loss_history=[], seed=None, device ='cpu', plot=False):
+
+    token_importances_extractor = model.token_importances_extractor
+    encoder_decoder = model.encoder_decoder
+    tokenizer = model.tokenizer
+
+
+    if optimizer is None:
+        optimizer = torch.optim.Adam(iter(list(token_importances_extractor.parameters())+list(encoder_decoder.parameters())), 
+                                        lr=learning_rate)
+
+    tot_steps=len(train_dataloader)*epochs
+
+    for epoch in range(epochs):  # loop over the dataset multiple times
+    
+        torch.cuda.empty_cache()
+        running_loss1 = 0.0
+        running_loss2 = 0.0
+        optimizer.zero_grad()
+        start_time = time.time()
+        for batch_idx, data in enumerate(train_dataloader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            (passage, question, history), (answer, sep_starts, sep_ends) = data
+            history = tuple([h.split(' <sep> ') for h in history])
+            
+            if use_history:
+                separator = f' {tokenizer.sep_token} '
+                question = tuple([q + f'{separator if len(h) else ""}' + separator.join(h) for q, h in zip(question, history)])
+            
+            inputs = tokenizer(
+                question,
+                passage,
+                max_length=512,
+                truncation=True,
+                padding=True,
+                return_tensors="pt",
+            ).to(device)
+
+            labels = tokenizer(
+                list(answer),
+                max_length=512,
+                truncation=True,
+                padding=True,
+                return_tensors="pt",
+            ).to(device)
+
+            
+
+            out1 = token_importances_extractor.forward(inputs.input_ids,
+                            inputs.attention_mask)
+
+            y = torch.zeros(inputs.input_ids.shape+(1,), device=out1.device)
+
+            for i in range(len(sep_starts)):
+                
+                start_tok = inputs.char_to_token(i,sep_starts[i],1)
+                end_tok = inputs.char_to_token(i,sep_ends[i],1)
+
+                if start_tok is None:
+                    start_tok = inputs.char_to_token(i,sep_starts[i]+1,1)
+                if start_tok is None:
+                    start_tok = inputs.char_to_token(i,sep_starts[i]-1,1)
+
+                if end_tok is None:
+                    end_tok = inputs.char_to_token(i,sep_ends[i]-1,1)
+                if end_tok is None:
+                    end_tok = inputs.char_to_token(i,sep_ends[i]+1,1)
+                
+                y[i, start_tok : end_tok] = 1
+
+            loss1 = loss_func_tokenImportancesExtractor(out1,y)
+
+            forcing = 0.5 + np.cos(np.pi*(epoch*len(train_dataloader)+batch_idx)/tot_steps)/2
+            importances = forcing*y + (1-forcing)*out1
+
+            out2 = encoder_decoder(input_ids = inputs.input_ids,
+                         labels = labels.input_ids,
+                         token_importances = importances)
+            
+            loss2 = out2.loss
+
+            loss = loss1 + loss2
+
+            loss.backward()
+
+            if batch_idx % steps_per_update == steps_per_update-1:
+                optimizer.step()
+                optimizer.zero_grad()
+
+            if steps_empty_cache is not None:
+                if batch_idx % steps_empty_cache == steps_empty_cache-1:
+                    torch.cuda.empty_cache()
+
+            if steps_validate is not None:
+                if batch_idx % steps_validate == steps_validate-1:
+                    torch.cuda.empty_cache()
+                    
+            running_loss1 += loss1.item()
+            running_loss2 += loss2.item()
+
+            loss_history.append(loss.detach().cpu().numpy())
+            
+            epoch_time = time.time() - start_time
+            batch_time = epoch_time/(batch_idx+1)
+            
+            # TODO end
+            print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, forcing={forcing:.3g}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss1/(batch_idx+1):.3g} {running_loss2/(batch_idx+1):.3g}", end='\r')#)
+
+        print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, forcing={forcing:.3g}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss:{running_loss1/(batch_idx+1):.3g} {running_loss2/(batch_idx+1):.3g}")
