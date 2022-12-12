@@ -102,13 +102,13 @@ def plot_token_importances(source_name: str, sources_statistics_dict: dict, mode
         token_importances = model.compute_token_importances(passage, question, span_start, span_end,
                                                             history if use_history else None)
 
-        y = np.zeros(shape=(token_importances.shape[1],))
+        golden_token_span = np.zeros(shape=(token_importances.shape[1],))
 
-        y[span_start : span_end] = 1
+        golden_token_span[span_start : span_end] = 1
 
         ax = fig.add_subplot(n_rows,n_cols, position_range[i])
         ax.plot(token_importances.cpu().detach()[0], label='Predicted token importances')
-        ax.plot(y, label='Golden token importances')
+        ax.plot(golden_token_span, label='Golden token importances')
         ax.set_xlabel('Token ids')
         ax.set_ylabel('Importances')
         ax.set_title(f'Result {i + 1}')
