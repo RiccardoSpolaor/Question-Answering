@@ -30,7 +30,7 @@ class Model(torch.nn.Module):
 
 
     def generate(self, passage : Union[str,List[str]], question : Union[str,List[str]], history : Optional[Union[str,List[str]]] = None, 
-                 generation_params : Optional[dict] = None) -> str:
+                 generation_params : Optional[dict] = None, return_importances=False) -> str:
         # WORK ONLY IN BATCH
         # Set generation parameters.
         if generation_params is None:
@@ -71,7 +71,10 @@ class Model(torch.nn.Module):
 
             generated_text = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 
-        return generated_text
+        if return_importances:
+            return generated_text, token_importances_output
+        else:
+            return generated_text
 
 
     def compute_token_importances(self, passage, question, span_start, span_end, history=None):
