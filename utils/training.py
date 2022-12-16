@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 
 from .squad import validate
 
+from IPython.display import display
+
 
 def train(train_dataloader, val_dataloader, model, model_name, use_history=False, epochs=(2,1,0), optimizers=None, learnin_rates=None, steps_per_update=2, 
           steps_empty_cache=None, seed=None, device : str ='cpu', plot=False):
@@ -299,12 +301,15 @@ def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_
 def train_(train_dataloader, val_dataloader, model, model_name, use_history=False,
             epochs=3, learning_rate=5e-5, optimizer=None, 
             steps_per_update=1, steps_empty_cache=None, steps_validate=None,
-            loss_history=[], seed=None, device ='cpu', plot=False):
+            loss_history=None, val_loss_history=None, seed=None, device ='cpu', plot=False):
 
     token_importances_extractor = model.token_importances_extractor
     encoder_decoder = model.encoder_decoder
     tokenizer = model.tokenizer
 
+    if loss_history is None:
+        loss_history=[]
+        val_loss_history=[]
 
     if optimizer is None:
         optimizer = torch.optim.Adam(iter(list(token_importances_extractor.parameters())+list(encoder_decoder.parameters())), 
@@ -313,7 +318,9 @@ def train_(train_dataloader, val_dataloader, model, model_name, use_history=Fals
     tot_steps=len(train_dataloader)*epochs
 
     for epoch in range(epochs):  # loop over the dataset multiple times
-    
+        
+        disp=display('', display_id=True)
+
         torch.cuda.empty_cache()
         running_loss1 = 0.0
         running_loss2 = 0.0
@@ -395,6 +402,11 @@ def train_(train_dataloader, val_dataloader, model, model_name, use_history=Fals
             if steps_validate is not None:
                 if batch_idx % steps_validate == steps_validate-1:
                     torch.cuda.empty_cache()
+                    val_l1, val_l2 = loss_validate( tokenizer, token_importances_extractor, encoder_decoder, val_dataloader, disp,
+                                                    use_history=use_history, device=device)
+
+                    val_loss_history.append([len(loss_history), val_l1.detach().cpu().numpy(), val_l2.detach().cpu().numpy()])
+                    torch.cuda.empty_cache()
                     
             running_loss1 += loss1.item()
             running_loss2 += loss2.item()
@@ -405,6 +417,95 @@ def train_(train_dataloader, val_dataloader, model, model_name, use_history=Fals
             batch_time = epoch_time/(batch_idx+1)
             
             # TODO end
-            print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, forcing={forcing:.3g}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss1/(batch_idx+1):.3g} {running_loss2/(batch_idx+1):.3g}", end='\r')#)
+            disp.update(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, forcing={forcing:.3g}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss1/(batch_idx+1):.3g} {running_loss2/(batch_idx+1):.3g}")
 
-        print(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, forcing={forcing:.3g}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss:{running_loss1/(batch_idx+1):.3g} {running_loss2/(batch_idx+1):.3g}")
+    torch.cuda.empty_cache()
+    val_l1, val_l2 = loss_validate( tokenizer, token_importances_extractor, encoder_decoder, val_dataloader, disp,
+                                    use_history=use_history, device=device)
+    val_loss_history.append([len(loss_history), val_l1.detach().cpu().numpy(), val_l2.detach().cpu().numpy()])
+    torch.cuda.empty_cache()
+
+    file_name = f'{model_name}.pt'
+    file_path = os.path.join(folder_name, file_name)
+    torch.save(model.state_dict(), file_path)
+
+    return loss_history, val_loss_history, optimizer
+
+
+
+def loss_validate(  tokenizer, token_importances_extractor, encoder_decoder, val_dataloader, disp,
+                    use_history = False, device='cpu'):
+    tot_l1=0
+    tot_l2=0
+    n=0
+    t0=time.time()
+
+    torch.cuda.empty_cache()
+
+    for batch_idx, data in enumerate(val_dataloader, 0):
+        
+        with torch.no_grad():
+            # get the inputs; data is a list of [inputs, labels]
+            (passage, question, history), (answer, sep_starts, sep_ends) = data
+            history = tuple([h.split(' <sep> ') for h in history])
+            
+            if use_history:
+                separator = f' {tokenizer.sep_token} '
+                question = tuple([q + f'{separator if len(h) else ""}' + separator.join(h) for q, h in zip(question, history)])
+            
+            inputs = tokenizer(
+                question,
+                passage,
+                max_length=512,
+                truncation=True,
+                padding=True,
+                return_tensors="pt",
+            ).to(device)
+
+            labels = tokenizer(
+                list(answer),
+                max_length=512,
+                truncation=True,
+                padding=True,
+                return_tensors="pt",
+            ).to(device)
+
+            out1 = token_importances_extractor.forward( inputs.input_ids,
+                                                        inputs.attention_mask)
+
+            y = torch.zeros(inputs.input_ids.shape+(1,), device=out1.device)
+
+            for i in range(len(sep_starts)):
+                
+                start_tok = inputs.char_to_token(i,sep_starts[i],1)
+                end_tok = inputs.char_to_token(i,sep_ends[i],1)
+
+                if start_tok is None:
+                    start_tok = inputs.char_to_token(i,sep_starts[i]+1,1)
+                if start_tok is None:
+                    start_tok = inputs.char_to_token(i,sep_starts[i]-1,1)
+
+                if end_tok is None:
+                    end_tok = inputs.char_to_token(i,sep_ends[i]-1,1)
+                if end_tok is None:
+                    end_tok = inputs.char_to_token(i,sep_ends[i]+1,1)
+                
+                y[i, start_tok : end_tok] = 1
+
+            loss1 = loss_func_tokenImportancesExtractor(out1,y)
+
+            out2 = encoder_decoder( input_ids = inputs.input_ids,
+                                    attention_mask = inputs.attention_mask,
+                                    labels = labels.input_ids,
+                                    token_importances = out1)
+            
+            loss2 = out2.loss
+
+            l=(len(question) if isinstance(question,tuple) else 1)
+            tot_l1 += loss1*l
+            tot_l2 += loss2*l
+            n += l
+
+        disp.update(f"validate {batch_idx + 1}/{len(val_dataloader)}, {(time.time()-t0):.0f}s {(time.time()-t0)/(batch_idx+1)*1e3:.0f}ms/step, mean losses: {tot_l1/n:.3g} {tot_l2/n:.3g}")
+    
+    return tot_l1/n, tot_l2/n
