@@ -303,6 +303,11 @@ def train_(train_dataloader, val_dataloader, model, model_name, use_history=Fals
             steps_per_update=1, steps_empty_cache=None, steps_validate=None,
             loss_history=None, val_loss_history=None, seed=None, device ='cpu', plot=False):
 
+    if use_history:
+        folder_name = 'weigths\PQH'
+    else:
+        folder_name = 'weigths\PQ'
+
     token_importances_extractor = model.token_importances_extractor
     encoder_decoder = model.encoder_decoder
     tokenizer = model.tokenizer
@@ -319,6 +324,7 @@ def train_(train_dataloader, val_dataloader, model, model_name, use_history=Fals
 
     for epoch in range(epochs):  # loop over the dataset multiple times
         
+        times=display('', display_id=True)
         disp=display('', display_id=True)
 
         torch.cuda.empty_cache()
@@ -329,8 +335,10 @@ def train_(train_dataloader, val_dataloader, model, model_name, use_history=Fals
         for batch_idx, data in enumerate(train_dataloader, 0):
             # get the inputs; data is a list of [inputs, labels]
             (passage, question, history), (answer, sep_starts, sep_ends) = data
+
+            t0=time.time()
+
             history = tuple([h.split(' <sep> ') for h in history])
-            
             if use_history:
                 separator = f' {tokenizer.sep_token} '
                 question = tuple([q + f'{separator if len(h) else ""}' + separator.join(h) for q, h in zip(question, history)])
@@ -352,12 +360,7 @@ def train_(train_dataloader, val_dataloader, model, model_name, use_history=Fals
                 return_tensors="pt",
             ).to(device)
 
-            
-
-            out1 = token_importances_extractor.forward(inputs.input_ids,
-                            inputs.attention_mask)
-
-            y = torch.zeros(inputs.input_ids.shape+(1,), device=out1.device)
+            y = torch.zeros(inputs.input_ids.shape+(1,), device=device)
 
             for i in range(len(sep_starts)):
                 
@@ -374,26 +377,39 @@ def train_(train_dataloader, val_dataloader, model, model_name, use_history=Fals
                 if end_tok is None:
                     end_tok = inputs.char_to_token(i,sep_ends[i]+1,1)
                 
-                y[i, start_tok : end_tok] = 1
+                y[i, start_tok : end_tok] = 1 
 
-            loss1 = loss_func_tokenImportancesExtractor(out1,y)
+            t1=time.time()
+
+            out1 = token_importances_extractor.forward(inputs.input_ids,
+                            inputs.attention_mask)
+
+            t2=time.time()
 
             forcing = 0.5 + np.cos(np.pi*(epoch*len(train_dataloader)+batch_idx)/tot_steps)/2
             importances = forcing*y + (1-forcing)*out1
 
             out2 = encoder_decoder(input_ids = inputs.input_ids,
                          labels = labels.input_ids,
-                         token_importances = importances)
+                         token_importances = y)
             
-            loss2 = out2.loss
+            t3=time.time()
 
+            loss1 = loss_func_tokenImportancesExtractor(out1,y)
+            loss2 = out2.loss
             loss = loss1 + loss2
 
+            t4=time.time()
+
             loss.backward()
+
+            t5=time.time()
 
             if batch_idx % steps_per_update == steps_per_update-1:
                 optimizer.step()
                 optimizer.zero_grad()
+
+            t6=time.time()
 
             if steps_empty_cache is not None:
                 if batch_idx % steps_empty_cache == steps_empty_cache-1:
@@ -411,12 +427,14 @@ def train_(train_dataloader, val_dataloader, model, model_name, use_history=Fals
             running_loss1 += loss1.item()
             running_loss2 += loss2.item()
 
-            loss_history.append(loss.detach().cpu().numpy())
+            loss_history.append([loss1.detach().cpu().numpy(), loss2.detach().cpu().numpy()])
             
             epoch_time = time.time() - start_time
             batch_time = epoch_time/(batch_idx+1)
             
-            # TODO end
+            
+            #times.update(f"{t1-t0:.3f}, {t2-t1:.3f}, {t3-t2:.3f}, {t4-t3:.3f}, {t5-t4:.3f}, {t6-t5:.3f}")
+
             disp.update(f"epoch: {epoch + 1}/{epochs}, {batch_idx + 1}/{len(train_dataloader)}, forcing={forcing:.3g}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {running_loss1/(batch_idx+1):.3g} {running_loss2/(batch_idx+1):.3g}")
 
     torch.cuda.empty_cache()
