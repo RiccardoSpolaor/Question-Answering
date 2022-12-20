@@ -298,17 +298,18 @@ def train_EncoderDecoder(train_dataloader, token_importances_extractor, encoder_
     return loss_history
 
 
-def train_1(train_dataloader, val_dataloader, model, use_history=False,
+def train_1(train_dataloader, val_dataloader, model, use_history=False, folder_name=None,
             epochs=3, learning_rate=5e-5, opt_state_dict=None, 
             steps_per_update=1, steps_empty_cache=None, steps_validate=None, steps_save=None,
             loss_history=None, val_loss_history=None, seed=None, device ='cpu', plot=False):
 
     model_name=model.model_name.replace('/','_')
 
-    if use_history:
-        folder_name = 'weigths\PQH\seed'+str(seed)
-    else:
-        folder_name = 'weigths\PQ\seed'+str(seed)
+    if folder_name is None:
+        if use_history:
+            folder_name = 'weigths\PQH\seed'+str(seed)
+        else:
+            folder_name = 'weigths\PQ\seed'+str(seed)
     os.makedirs(folder_name, exist_ok=True)
 
     if loss_history is None:
