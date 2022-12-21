@@ -458,16 +458,30 @@ def train_1(train_dataloader, val_dataloader, model, use_history=False, folder_n
                     steps_save=int(steps_save*len(train_dataloader))
                 if batch_idx % steps_save == steps_save-1:
                     torch.cuda.empty_cache()
-                    torch.save(model.state_dict(), f'{folder_name}\\{model_name}.pth')
-                    torch.save(optimizer.state_dict(), f'{folder_name}\\{model_name}_optimizer.pth')
-                    np.save(f'{folder_name}/{model_name}_loss_history.npy', np.array(loss_history))
-                    np.save(f'{folder_name}/{model_name}_val_loss_history.npy', np.array(val_loss_history))
+
+                    checkpoint = {'model_state_dict': model.state_dict(),
+                                  'opt_state_dict' : optimizer.state_dict(),
+                                  'loss_history': np.array(loss_history),
+                                  'val_loss_history': np.array(val_loss_history)}
+                    torch.save(checkpoint, f'{folder_name}\\{model_name}.pth')
+
+                    #torch.save(model.state_dict(), f'{folder_name}\\{model_name}.pth')
+                    #torch.save(optimizer.state_dict(), f'{folder_name}\\{model_name}_optimizer.pth')
+                    #np.save(f'{folder_name}/{model_name}_loss_history.npy', np.array(loss_history))
+                    #np.save(f'{folder_name}/{model_name}_val_loss_history.npy', np.array(val_loss_history))
                     torch.cuda.empty_cache()
+
     torch.cuda.empty_cache()
-    torch.save(model.state_dict(), f'{folder_name}\\{model_name}.pth')
-    torch.save(optimizer.state_dict(), f'{folder_name}\\{model_name}_optimizer.pth')
-    np.save(f'{folder_name}/{model_name}_loss_history.npy', np.array(loss_history))
-    np.save(f'{folder_name}/{model_name}_val_loss_history.npy', np.array(val_loss_history))
+    checkpoint = {  'model_state_dict': model.state_dict(),
+                    'opt_state_dict' : optimizer.state_dict(),
+                    'loss_history': np.array(loss_history),
+                    'val_loss_history': np.array(val_loss_history)}
+    torch.save(checkpoint, f'{folder_name}\\{model_name}.pth')
+    # torch.save(model.state_dict(), f'{folder_name}\\{model_name}.pth')
+    # torch.save(optimizer.state_dict(), f'{folder_name}\\{model_name}_optimizer.pth')
+    # np.save(f'{folder_name}/{model_name}_loss_history.npy', np.array(loss_history))
+    # np.save(f'{folder_name}/{model_name}_val_loss_history.npy', np.array(val_loss_history))
+    
     torch.cuda.empty_cache()
 
 
