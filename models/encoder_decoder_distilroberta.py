@@ -9,7 +9,7 @@ import warnings
 from typing import List, Optional, Tuple, Union
 
 from transformers.utils import logging
-from transformers.models.encoder_decoder.modeling_encoder_decoder import DEPRECATION_WARNING, shift_tokens_right
+from transformers.models.encoder_decoder.modeling_encoder_decoder import shift_tokens_right
 
 from transformers.modeling_outputs import (
     BaseModelOutput,
@@ -148,7 +148,6 @@ def _forward_encdec_overridden_roberta(
     # Compute loss independent from decoder (as some shift the logits inside them)
     loss = None
     if labels is not None:
-        warnings.warn(DEPRECATION_WARNING, FutureWarning)
         logits = decoder_outputs.logits if return_dict else decoder_outputs[0]
         loss_fct = CrossEntropyLoss()
         loss = loss_fct(logits.reshape(-1, self.decoder.config.vocab_size), labels.view(-1))
