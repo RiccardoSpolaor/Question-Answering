@@ -64,7 +64,7 @@ def _get_tokens(input_string: str) -> List[str]:
         return []
     return _normalize_answer(input_string).split()
 
-def _compute_squad_f1(gold_answer: str, predicted_answer: str) -> float:
+def compute_squad_f1(gold_answer: str, predicted_answer: str) -> float:
     """Compute the SQuAD f1 score on a true answer and its prediction.
 
     Parameters
@@ -110,38 +110,9 @@ def validate(model: Model, val_dataloader, use_history: bool = False):
             
             pred=model.generate(passage,question,history if use_history else None)
             
-            tot_f1 += np.sum([_compute_squad_f1(gold,predicet) for gold, predicet in zip(answer,pred)])
+            tot_f1 += np.sum([compute_squad_f1(gold,predicet) for gold, predicet in zip(answer,pred)])
             n += len(question) if isinstance(question,tuple) else 1
 
-        print(f"{batch_idx + 1}/{len(val_dataloader)}, {(time.time()-t0):.0f}s {(time.time()-t0)/(batch_idx+1)*1e3:.0f}ms/step, mean F1: {tot_f1/n}",end='\r')
+        print(f"{batch_idx + 1}/{len(val_dataloader)}, {(time.time()-t0):.0f}s {(time.time()-t0)/(batch_idx+1)*1e3:.0f}ms/step, mean SQuAD F1: {tot_f1/n}",end='\r')
     
     return tot_f1/n
-
-def compute_squad_f1(gold_answers: Union[List[str], str], predicted_answers: Union[List[str], str]) -> float:
-    """Compute the average SQuAD f1 score on a series of true and predicted answers.
-
-    Parameters
-    ----------
-    gold_answers : iterable of str | str
-        The true answer.
-    predicted_answers : iterable of str | str
-        The predicted answers
-    Returns
-    -------
-    float
-        The average SQuAD f1 score on the batch.
-    """
-    # Assert that `gold_answers` and `predicted_answers` are either both iterables or strings.
-    assert (isinstance(gold_answers, list) and isinstance(predicted_answers, list)) \
-        or (type(gold_answers) == str and type(predicted_answers) == str), \
-        '`gold_answers` and `predicted_answers` must be either both iterables or strings'
-
-    # Compute SQuAD f1 score if a single instance is provided.
-    if type(gold_answers) == str:
-        return _compute_squad_f1(gold_answers, predicted_answers)
-
-    # Compute average SQuAD f1 score if a batch of instances is provided.
-    score = 0.
-    for g, p in zip(gold_answers, predicted_answers):
-        score += _compute_squad_f1(g, p)
-    return score / len(gold_answers)

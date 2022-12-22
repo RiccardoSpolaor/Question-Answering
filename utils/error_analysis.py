@@ -8,7 +8,7 @@ from typing import List, Tuple
 from models.model import Model
 
 from utils.dataloader_builder import get_dataloader
-from utils.squad import _compute_squad_f1
+from utils.squad import compute_squad_f1
 
 
 def get_worst_answers(model: Model, df_source: pd.DataFrame, use_history: bool = False, k: int = 5, 
@@ -37,7 +37,7 @@ def get_worst_answers(model: Model, df_source: pd.DataFrame, use_history: bool =
                 answer = np.array(answer)[mask]
                 pred = np.array(pred)[mask]
 
-            f1_scores = np.array([_compute_squad_f1(gold, predicted) for gold, predicted in zip(answer,pred)])
+            f1_scores = np.array([compute_squad_f1(gold, predicted) for gold, predicted in zip(answer,pred)])
             samples_indices = np.argsort(f1_scores)[:k]
 
             worst_answers += [tuple([f1_scores[sample_idx], question[sample_idx], passage[sample_idx], history[sample_idx], 
