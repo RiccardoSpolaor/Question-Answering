@@ -1,0 +1,41 @@
+## bert-tiny
+### PQ
+* seed 42: F1 SQuAD = 0.23644743579043012
+* seed 2022: F1 SQuAD = 0.24117421818765528
+* seed 1337: F1 SQuAD = 0.2406249428390614
+### PQH
+* seed 42: F1 SQuAD = 0.22185163231470637
+* seed 2022: F1 SQuAD = 0.23625523368803047
+* seed 1337: F1 SQuAD = 0.232026627217615
+
+
+## bert-tiny TEST set
+### PQ
+* seed 42: F1 SQuAD = 0.23853749531438473
+* seed 2022: F1 SQuAD = 0.24609697954465737
+* seed 1337: F1 SQuAD = 0.25224517818054065
+### PQH
+* seed 42: F1 SQuAD = 0.2348838888387363
+* seed 2022: F1 SQuAD = 0.24361074600499444
+* seed 1337: F1 SQuAD = 0.23501837090792735
+
+## roberta
+### PQ
+* seed 42: F1 SQuAD =
+* seed 2022: F1 SQuAD = 
+* seed 1337: F1 SQuAD = 
+### PQH
+* seed 42: F1 SQuAD = 0.4975186412157798
+* seed 2022: F1 SQuAD = 0.5028064156884385
+* seed 1337: F1 SQuAD = 
+
+
+## roberta TEST set
+### PQ
+* seed 42: F1 SQuAD = 
+* seed 2022: F1 SQuAD = 
+* seed 1337: F1 SQuAD = 
+### PQH
+* seed 42: F1 SQuAD = 
+* seed 2022: F1 SQuAD = 
+* seed 1337: F1 SQuAD = 
