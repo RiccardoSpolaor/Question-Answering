@@ -1,1 +1,1 @@
-- Change default device from 'cpu' to 'cuda'
+- Fixare creazione di targets y per il token importances (cicli while)
