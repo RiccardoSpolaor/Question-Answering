@@ -13,14 +13,13 @@ Modifications
 """
 
 import collections
-import pandas as pd
+import numpy as np
 import re
 import string
-from typing import List, Union
 import time
-
-import numpy as np
 import torch
+from torch.utils.data import DataLoader
+from typing import List
 
 from models.model import Model
 
@@ -72,7 +71,7 @@ def compute_squad_f1(gold_answer: str, predicted_answer: str) -> float:
     gold_answer : str
         The true answer.
     predicted_answer : str
-        The predicted answer
+        The predicted answer.
     Returns
     -------
     float
@@ -87,7 +86,7 @@ def compute_squad_f1(gold_answer: str, predicted_answer: str) -> float:
         # If either is no-answer, then F1 is 1 if they agree, 0 otherwise
         return int(gold_tokens == predicted_tokens)
     if num_same == 0:
-        return 0
+        return 0.
     
     precision = 1.0 * num_same / len(predicted_tokens)
     recall = 1.0 * num_same / len(gold_tokens)
@@ -95,24 +94,41 @@ def compute_squad_f1(gold_answer: str, predicted_answer: str) -> float:
     f1 = (2 * precision * recall) / (precision + recall)
     return f1
 
-def validate(model: Model, val_dataloader, use_history: bool = False):
-    tot_f1=0
-    n=0
-    t0=time.time()
+def validate(model: Model, val_dataloader: DataLoader, use_history: bool) -> float:
+    """Evaluate the model on the validation dataset according to the average SQuAD F1 score.
+
+    Parameters
+    ----------
+    model : Model
+        The model to evaluate.
+    val_dataloader : DataLoader
+        The validation dataloader.
+    use_history : bool
+        Whether to use the previous QaA discussion history or not.
+
+    Returns
+    -------
+    float
+        The average SQuAD F1 score of the validation dataset.
+    """
+    
+    tot_squad_f1 = 0.
+    total_n_instances = 0
+    starting_time = time.time()
 
     torch.cuda.empty_cache()
 
     for batch_idx, data in enumerate(val_dataloader, 0):
-        
         with torch.no_grad():
-            # get the inputs; data is a list of [inputs, labels]
-            (passage, question, history), (answer, _, _) = data
+            (passages, questions, histories), (answers, _, _) = data
             
-            pred=model.generate(passage,question,history if use_history else None)
+            predictions = model.generate(passages, questions, histories if use_history else None)
             
-            tot_f1 += np.sum([compute_squad_f1(gold,predicet) for gold, predicet in zip(answer,pred)])
-            n += len(question) if isinstance(question,tuple) else 1
+            tot_squad_f1 += np.sum([compute_squad_f1(gold, predicted) for gold, predicted in zip(answers, predictions)])
+            total_n_instances += len(questions) if isinstance(questions, tuple) else 1
 
-        print(f"{batch_idx + 1}/{len(val_dataloader)}, {(time.time()-t0):.0f}s {(time.time()-t0)/(batch_idx+1)*1e3:.0f}ms/step, mean SQuAD F1: {tot_f1/n}",end='\r')
+        print(f"{batch_idx + 1}/{len(val_dataloader)}, {(time.time() - starting_time):.0f}s",
+              f"{(time.time()-starting_time)/(batch_idx+1)*1e3:.0f}ms/step, mean SQuAD F1: {tot_squad_f1/total_n_instances}",
+              end='\r')
     
-    return tot_f1/n
+    return tot_squad_f1 / total_n_instances

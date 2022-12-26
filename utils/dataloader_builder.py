@@ -37,7 +37,7 @@ class _Dataset(torch.utils.data.Dataset):
 
         Returns
         -------
-        (str, str, List[str]), str
+        ((str, str, list of str), str)
             A tuple of two elements containing: 
             * A tuple of the passage, the question and the history as its first element
             * The answer as its second element

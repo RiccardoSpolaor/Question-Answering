@@ -15,7 +15,7 @@ def _get_history(row: pd.Series) -> List[str]:
 
     Returns
     -------
-    List[str]
+    List of str
         The history of the conversation before a given question.
     """
     history = []

@@ -3,22 +3,23 @@ import types
 import torch 
 import torch.nn as nn
 
-from .encoder_decoder_distilroberta import _forward_encdec_overridden_roberta, _forward_encenc_overridden_roberta, _forward_enc_overridden_roberta
-from .encoder_decoder_bertTiny import _forward_encdec_overridden_bertTiny, _forward_encenc_overridden_bertTiny, _forward_enc_overridden_bertTiny
-
+from .encoder_decoder_distilroberta import (forward_encdec_overridden_roberta, forward_encenc_overridden_roberta, 
+                                            forward_enc_overridden_roberta)
+from .encoder_decoder_bertTiny import (forward_encdec_overridden_bertTiny, forward_encenc_overridden_bertTiny, 
+                                       forward_enc_overridden_bertTiny)
 from .linear_attention import LinearAttention
 
 def build_encoder_decoder(model_name, linear_attention=False, linearAttention_dims=128):
     encoder_decoder = EncoderDecoderModel.from_encoder_decoder_pretrained(model_name, model_name)
 
     if model_name=='distilroberta-base':
-        _forward_encdec_overridden = _forward_encdec_overridden_roberta
-        _forward_encenc_overridden = _forward_encenc_overridden_roberta
-        _forward_enc_overridden = _forward_enc_overridden_roberta
+        _forward_encdec_overridden = forward_encdec_overridden_roberta
+        _forward_encenc_overridden = forward_encenc_overridden_roberta
+        _forward_enc_overridden = forward_enc_overridden_roberta
     elif model_name=='prajjwal1/bert-tiny':
-        _forward_encdec_overridden = _forward_encdec_overridden_bertTiny
-        _forward_encenc_overridden = _forward_encenc_overridden_bertTiny
-        _forward_enc_overridden = _forward_enc_overridden_bertTiny
+        _forward_encdec_overridden = forward_encdec_overridden_bertTiny
+        _forward_encenc_overridden = forward_encenc_overridden_bertTiny
+        _forward_enc_overridden = forward_enc_overridden_bertTiny
     else:
         raise ValueError('`model_name` must be either "distilroberta-base" or "prajjwal1/bert-tiny"')
 

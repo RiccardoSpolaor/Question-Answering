@@ -1,16 +1,10 @@
-import torch 
-#import torch.nn as nn
+import torch
 import torch.utils.checkpoint
 from torch.nn import CrossEntropyLoss
-#from transformers import EncoderDecoderModel
-#import types
-
 import warnings
 from typing import List, Optional, Tuple, Union
-
 from transformers.utils import logging
 from transformers.models.encoder_decoder.modeling_encoder_decoder import DEPRECATION_WARNING, shift_tokens_right
-
 from transformers.modeling_outputs import (
     BaseModelOutput,
     Seq2SeqLMOutput,
@@ -19,33 +13,7 @@ from transformers.modeling_outputs import (
 )
 
 
-
-"""def build_encoder_decoder_bertTiny():
-    model_name = 'prajjwal1/bert-tiny'
-    encoder_decoder = EncoderDecoderModel.from_encoder_decoder_pretrained(model_name, model_name)
-
-    # funcType = type(encoder_decoder.forward)
-    encoder_decoder.forward = types.MethodType(_forward_encdec_overridden, encoder_decoder)
-
-    # funcType = type(encoder_decoder.encoder.forward)
-    encoder_decoder.encoder.forward = types.MethodType(_forward_enc_overridden, encoder_decoder.encoder)
-
-    # funcType = type(encoder_decoder.encoder.encoder.forward)
-    encoder_decoder.encoder.encoder.forward = types.MethodType(_forward_encenc_overridden, encoder_decoder.encoder.encoder)
-
-    for L in encoder_decoder.encoder.encoder.layer:
-        linear = nn.Linear(1, encoder_decoder.encoder.config.hidden_size)
-
-        linear.weight = torch.nn.parameter.Parameter(torch.randn(linear.weight.shape, dtype=linear.weight.dtype)*1e-4)
-        linear.bias = torch.nn.parameter.Parameter(torch.randn(linear.bias.shape, dtype=linear.bias.dtype)*1e-4)
-
-        L.linear = linear 
-
-    return encoder_decoder"""
-
-
-
-def _forward_encdec_overridden_bertTiny(
+def forward_encdec_overridden_bertTiny(
     self,
     input_ids: Optional[torch.LongTensor] = None,
     token_importances: Optional[torch.LongTensor] = None,
@@ -166,7 +134,7 @@ def _forward_encdec_overridden_bertTiny(
     )
 
 
-def _forward_enc_overridden_bertTiny(
+def forward_enc_overridden_bertTiny(
     self,
     input_ids: Optional[torch.Tensor] = None,
     token_importances: Optional[torch.LongTensor] = None,
@@ -299,7 +267,7 @@ def _forward_enc_overridden_bertTiny(
 
 logger = logging.get_logger(__name__)
 
-def _forward_encenc_overridden_bertTiny(
+def forward_encenc_overridden_bertTiny(
     self,
     hidden_states: torch.Tensor,
     token_importances: Optional[torch.LongTensor] = None,

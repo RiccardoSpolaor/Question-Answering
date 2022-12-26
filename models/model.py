@@ -1,10 +1,7 @@
 import torch
-
 from transformers import AutoTokenizer, PreTrainedTokenizer 
-
 from .token_importances_extractor import TokenImportancesExtractor
 from .encoder_decoder import build_encoder_decoder
-
 from typing import List, Optional, Union
 
 class Model(torch.nn.Module):

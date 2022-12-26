@@ -1,5 +1,4 @@
 import torch
-
 from typing import Optional
 import torch.nn as nn
 from transformers import AutoModel
