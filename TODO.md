@@ -1,0 +1,1 @@
+- Change default device from 'cpu' to 'cuda'

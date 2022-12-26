@@ -24,6 +24,12 @@ def load_checkpoints(model: Model, checkpoint_path: str) \
     (ndarray, ndarray, ndarray)
         Tuple containing in the given order the training loss history, the validation loss history and the optimizer state.
         (None, None, None) is returned if the checkpoint file is not present.
+        - The training loss history is a list of pairs, containing the training loss1 (i.e. token importances loss) and the 
+          training loss2 (i.e. answer generation loss) for each training step.
+        - The validation loss history is a list of triples, containing the training step in which that validation step has 
+          been performed, the validation loss1  (i.e. token importances loss) and the validation loss2 (i.e. answer 
+          generation loss) for each validation step.
+        - The optimizer state is a dictionary containing the state of the optmizer.
     """
     try:
         checkpoint = torch.load(checkpoint_path)
