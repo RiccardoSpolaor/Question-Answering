@@ -165,7 +165,36 @@ def plot_token_importances(source_name: str, sources_statistics_dict: dict, mode
 
         # Create the array of the actual tokens present in the span of the given question
         golden_token_span = np.zeros(shape=(token_importances.shape[1],))
-        golden_token_span[span_start : span_end] = 1
+        
+        passage_decoded = model.tokenizer(
+            passage,
+            max_length=512,
+            truncation=True,
+            padding=True,
+            return_tensors="pt",
+        ).to('cuda')
+
+        # Get indices of the tokens corresponding to the span start and span end character indices
+        start_token = passage_decoded.char_to_token(0, span_start)
+        end_token = passage_decoded.char_to_token(0, span_end)
+
+        j = 1
+        while start_token is None:
+            if span_start.int() + j < span_end.int():
+                start_token = passage_decoded.char_to_token(0, span_start + j)
+            if start_token is None and span_start.int() - j >= 0:
+                start_token = passage_decoded.char_to_token(0, span_start - j)
+            j += 1
+
+        j = 1
+        while end_token is None:
+            if span_end.int() - j >= span_start.int():
+                end_token = passage_decoded.char_to_token(0, span_end - j)
+            if end_token is None and span_end.int() + j < len(passage):
+                end_token = passage_decoded.char_to_token(0, span_end + j)
+            j += 1
+
+        golden_token_span[start_token : end_token] = 1
 
         ax = fig.add_subplot(n_rows, n_cols, position_range[i])
         # Plot predicted token importances
