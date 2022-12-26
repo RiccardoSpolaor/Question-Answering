@@ -74,11 +74,11 @@ class Model(torch.nn.Module):
             return generated_text
 
 
-    def compute_token_importances(self, passage, question, span_start, span_end, history=None):
+    def compute_token_importances(self, passage, question, history=None):
         if history is not None:
-            history = tuple([h.split(' <sep> ') for h in history])
+            history = history.split(' <sep> ')
             separator = f' {self.tokenizer.sep_token} '
-            question_and_history = tuple([q + f'{separator if len(h) else ""}' + separator.join(h) for q, h in zip(question, history)])
+            question_and_history = question + f'{separator if len(history) else ""}' + separator.join(history)
         else:
             question_and_history = question
 

@@ -160,8 +160,7 @@ def plot_token_importances(source_name: str, sources_statistics_dict: dict, mode
         _, question, passage, history, _, _, span_start, span_end = results[i]
 
         # Compute token importances
-        token_importances = model.compute_token_importances(passage, question, span_start, span_end,
-                                                            history if use_history else None)
+        token_importances = model.compute_token_importances(passage, question, history if use_history else None)
 
         # Create the array of the actual tokens present in the span of the given question
         golden_token_span = np.zeros(shape=(token_importances.shape[1],))
