@@ -6,7 +6,7 @@ from typing import List, Optional, Union
 
 class Model(torch.nn.Module):
     def __init__(self, model_name : str, tokenizer: Optional[PreTrainedTokenizer] = None, linear_attention=False, 
-                linearAttention_dims=128, device : str = 'cpu'):
+                linearAttention_dims=128, device : str = 'cuda'):
         super().__init__()
         self.model_name = model_name 
         self.device = device
