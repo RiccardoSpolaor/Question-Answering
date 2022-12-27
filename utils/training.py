@@ -173,26 +173,17 @@ def train(train_dataloader: DataLoader, val_dataloader: DataLoader, model: Model
             # Target vector y: for each input token, it contains 1 if that token is in the span, 0 otherwise.
             y = torch.zeros(inputs.input_ids.shape+(1,), device=device)
             for i in range(len(sep_starts)):
-                # Get indices of the tokens corresponding to the span start and span end character indices
-                start_token = inputs.char_to_token(i, sep_starts[i], 1)
-                end_token = inputs.char_to_token(i, sep_ends[i], 1)
-
-                j = 1
-                while start_token is None:
-                    if sep_starts[i].int() + j < sep_ends[i].int():
-                        start_token = inputs.char_to_token(i, sep_starts[i] + j, 1)
-                    if start_token is None and sep_starts[i].int() - j >= 0:
-                        start_token = inputs.char_to_token(i, sep_starts[i] - j, 1)
-                    j += 1
-
-                j = 1
-                while end_token is None:
-                    if sep_ends[i].int() - j >= sep_starts[i].int():
-                        end_token = inputs.char_to_token(i, sep_ends[i] - j, 1)
-                    if end_token is None and sep_ends[i].int() + j < len(passage[i]):
-                        end_token = inputs.char_to_token(i, sep_ends[i] + j, 1)
-                    j += 1
-                y[i, start_token : end_token] = 1 
+                start_tok = inputs.char_to_token(i,sep_starts[i],1)
+                end_tok = inputs.char_to_token(i,sep_ends[i],1)
+                if start_tok is None:
+                    start_tok = inputs.char_to_token(i,sep_starts[i]+1,1)
+                if start_tok is None:
+                    start_tok = inputs.char_to_token(i,sep_starts[i]-1,1)
+                if end_tok is None:
+                    end_tok = inputs.char_to_token(i,sep_ends[i]-1,1)
+                if end_tok is None:
+                    end_tok = inputs.char_to_token(i,sep_ends[i]+1,1)
+                y[i, start_tok : end_tok] = 1 
 
             # Compute token importances
             out1 = token_importances_extractor.forward(inputs.input_ids,inputs.attention_mask)
