@@ -3,7 +3,6 @@ from typing import Optional
 import torch.nn as nn
 from transformers import AutoModel
 
-from .linear_attention import LinearAttention
 
 
 class TokenImportancesExtractor(nn.Module):
@@ -24,23 +23,13 @@ class TokenImportancesExtractor(nn.Module):
     ----------
     model_name : str
         Name of the pre-trained model to use, either 'prajjwal1/bert-tiny' or 'distilroberta-base'.
-    linear_attention : bool, optional
-        Whether to use the linear attention or not, by default False.
-        The linear attention is implemented using the Linformer.
-    linearAttention_dims : int, optional
-        Dimensionality of the linear attention, by default 128
     """
 
-    def __init__(self, model_name : str, linear_attention=False, linearAttention_dims=128):
+    def __init__(self, model_name : str):
         super().__init__()
 
         # Pre-trained encoder
         self.encoder = AutoModel.from_pretrained(model_name)
-
-        if linear_attention:
-            for L in self.encoder.encoder.layer:
-                new_attention = LinearAttention(L.attention.self, k_dims=linearAttention_dims)
-                L.attention.self = new_attention
 
         # Linear layer on top of the encoder, producing the scalar scores
         self.linear = nn.Linear(in_features=self.encoder.config.hidden_size, out_features=1)

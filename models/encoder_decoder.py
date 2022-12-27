@@ -7,11 +7,10 @@ from .encoder_decoder_distilroberta import (forward_encdec_overridden_roberta, f
                                             forward_enc_overridden_roberta)
 from .encoder_decoder_bertTiny import (forward_encdec_overridden_bertTiny, forward_encenc_overridden_bertTiny, 
                                        forward_enc_overridden_bertTiny)
-from .linear_attention import LinearAttention
 
 
 
-def build_encoder_decoder(model_name, linear_attention=False, linearAttention_dims=128):
+def build_encoder_decoder(model_name):
     """Return the encoder-decoder module, i.e. the seq2seq module.
 
     Given the question, the passage (and, optionally, the history) and the tokens importances scores, it generates the answer.
@@ -42,11 +41,6 @@ def build_encoder_decoder(model_name, linear_attention=False, linearAttention_di
     ----------
     model_name : str
         Name of the pre-trained model to use, either 'prajjwal1/bert-tiny' or 'distilroberta-base'.
-    linear_attention : bool, optional
-        Whether to use the linear attention or not, by default False.
-        The linear attention is implemented using the Linformer.
-    linearAttention_dims : int, optional
-        Dimensionality of the linear attention, by default 128
 
     Returns
     -------
@@ -97,9 +91,5 @@ def build_encoder_decoder(model_name, linear_attention=False, linearAttention_di
 
         # Inject this new linear layer into the current block
         L.linear = linear 
-
-        if linear_attention:
-            new_attention = LinearAttention(L.attention.self, k_dims=linearAttention_dims)
-            L.attention.self = new_attention
 
     return encoder_decoder

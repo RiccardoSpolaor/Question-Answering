@@ -58,17 +58,11 @@ class Model(torch.nn.Module):
     tokenizer : Optional[PreTrainedTokenizer], optional
         Pre-trained tokenizer to use, by default None.
         If None, the default tokenizer of the pre-trained model is used.
-    linear_attention : bool, optional
-        Whether to use the linear attention or not, by default False.
-        The linear attention is implemented using the Linformer.
-    linearAttention_dims : int, optional
-        Dimensionality of the linear attention, by default 128
     device : str, optional
         Device onto which attach the model, by default 'cuda'
    
     """
-    def __init__(self, model_name : str, tokenizer: Optional[PreTrainedTokenizer] = None, linear_attention=False, 
-                linearAttention_dims=128, device : str = 'cuda'):
+    def __init__(self, model_name : str, tokenizer: Optional[PreTrainedTokenizer] = None, device : str = 'cuda'):
         super().__init__()
         self.model_name = model_name 
         self.device = device
@@ -78,8 +72,7 @@ class Model(torch.nn.Module):
         self.token_importances_extractor.to(device)
 
         # Encoder-decoder
-        self.encoder_decoder = build_encoder_decoder(model_name=model_name, linear_attention=linear_attention,
-                                                     linearAttention_dims=linearAttention_dims)
+        self.encoder_decoder = build_encoder_decoder(model_name=model_name)
         self.encoder_decoder.to(device)
 
         if tokenizer is None:
