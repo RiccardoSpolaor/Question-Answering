@@ -1,1 +1,2 @@
 - Fixare creazione di targets y per il token importances (cicli while)
+- Eliminare Linear attention

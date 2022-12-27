@@ -8,14 +8,24 @@ class Model(torch.nn.Module):
     """The question answering model. 
 
     This model takes in input the question, the passage and, optionally, the history, and it generates the answer.
+    If given, the history is a single string where the different turns are separated with the special separator token 
+    '<sep>'. It is used by concatenating with the question, using the same special token '<sep>', and then this concatenated
+    string is given in input to the model.
 
-    This model consists in two modules.
+    This model consists of two modules.
     1. The first one is the tokens importances extractor. Given the question and the passage (and, optionally, the history)
        it produces the tokens importances: for each passage token, a score in [0,1] is produced, representing the importance
        of that passage token. Basically, each score represents the likelihood that the token is in the span containing the
        answer.
     2. The second module is the encoder-decoder, i.e. the seq2seq model. Given the question, the passage (and, optionally,
        the history) and the tokens importances, it generates the answer.
+
+    The reason for structuring in this way the model is the following. If we use only the encoder-decoder for generating the
+    answer, the model can have difficulties in finding the interesting and useful information in the passage, since it can 
+    be very long. Therefore, adding a module which gives to each token an importance, it can help the encoder-decoder in the
+    answer generation. Basically, the purpose is similar to have a module which extracts the span of interest from the passage
+    and then another module for generating an answer out of the extracted span. But the approach is different: we give an 
+    importance score to each passage token. 
 
     Going more in depth, the tokens importances extractor is a transformer-based encoder (e.g. bert) with a linear layer on 
     top.
@@ -37,6 +47,9 @@ class Model(torch.nn.Module):
     - Distil roberta: 'distilroberta-base'.
       The token importances extractor is built from the distil roberta encoder; the encoder-decoder is built from the distil 
       roberta encoder-decoder. 
+
+    For the implementation details of the two modules, see the python files `token_importances_extractor.py` and 
+    `encoder_decoder.py`.
 
     Parameters
     ----------
