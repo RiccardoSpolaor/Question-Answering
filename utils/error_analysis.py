@@ -98,8 +98,9 @@ def show_worst_errors(source_name: str, sources_statistics_dict: dict, show_hist
     """
     results = sources_statistics_dict[source_name]
     for r in results:
-        f1_squad, question, _, history, gold_answer, predicted_answer, _, _ = r
+        f1_squad, question, passage, history, gold_answer, predicted_answer, span_start, span_end = r
         
+        print(f'* Passage span: "{passage[span_start:span_end]}"')
         print(f'* Question: "{question}"')
         
         if show_history:
