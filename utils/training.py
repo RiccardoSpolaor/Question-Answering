@@ -22,18 +22,21 @@ def train(train_dataloader: DataLoader, val_dataloader: DataLoader, model: Model
           val_loss_history: Optional[list] = None, seed: int = None, device: str = 'cuda') -> None:
     """Train the given model on the given training dataset.
 
-    We remind that the model consists of two parts: a tokens importances extractor and an encoder-decoder.
+    We remind that the model consists of two parts: a tokens importances extractor and an encoder-decoder (i.e. seq2seq).
     Accordingly, the loss function is the sum of two losses.
     - The first loss is about the goodness of the tokens importances extractor. Basically, it measures the difference 
       between the true span in the passage and the importances over the passage assigned by the extractor.
-      More precisely, this loss consists in computing the binary cross-entropy of the each passage token: the true label is 1
-      if that token is in the span, 0 otherwise; the probability is the one assigned by the extractor. Then, the sum of these
-      binary cross-entropies is computed for each sample. Finally, the mean across the samples in the batch is computed.
+      In particular, this loss consists in computing the binary cross-entropy, where: the true label of each passage token
+      is 1 if that token is in the span, 0 otherwise; the predicted probability is the one assigned by the extractor.
+      More precisely, a variant of the binary crossentropy for imbalance classes is used, since there are much more 0 than
+      1.
+      See `_loss_function_token_importances_extractor`
     - The second loss is about the goodness of the encoder-decoder. Basically, it measures the difference between the 
-      generated answer and the true one. This is measured using the same standard loss function of the encoder-decoder.
+      generated answer and the true one. This is measured using the same standard loss function of the encoder-decoder, which
+      is the crossentropy loss.
 
     For each training step, the loss is computed by adding these two losses on the current batch. Then, the backpropagation 
-    using this loss on all the parameters of the model.   
+    using this loss is performed on all the parameters of the model.   
 
     Parameters
     ----------
@@ -272,12 +275,26 @@ def train(train_dataloader: DataLoader, val_dataloader: DataLoader, model: Model
 def _loss_function_token_importances_extractor(probabilities: Tensor, target: Tensor) -> Tensor:
     """Get the loss score of the predictions of Token Importances Extractor module.
 
+    This loss measures the difference between the true span in the passage and the importances over the passage assigned by 
+    the extractor.
+    In particular, this loss consists in computing the binary cross-entropy, where: the true label of each passage token
+    is 1 if that token is in the span, 0 otherwise; the predicted probability is the one assigned by the extractor.
+    More precisely, a variant of the binary crossentropy for imbalance classes is used, since there are much more 0 than
+    1.
+
+    Going more in depth, the computation is the following.
+    - For each token, its binary croessentropy is computed, between its true label and the predicted probability.
+    - For each batch sample, the sum of the binary crossentropies of all the tokens is performed.
+      Actually, since it is an imbalance problem, a weigthed sum is performed: we normalize the part of the sum related to the
+      class 1 by the support of this class, and we do the same for the other class.
+    - Finally, we compute the mean across all the batch samples.
+
     Parameters
     ----------
     probabilities : Tensor
         The token importances predicted probabilities.
     target : Tensor
-        The actual token importances.
+        The actual span of the passage. For each token, the value is 1 if that token is in the span, 0 otherwise.
 
     Returns
     -------

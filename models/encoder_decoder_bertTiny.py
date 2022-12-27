@@ -13,10 +13,27 @@ from transformers.modeling_outputs import (
 )
 
 
+
+"""
+These three functions overwrite the forward pass methods of the encoder-decoder bert tiny.
+This code is heavily based on the huggin face code, taken from https://github.com/huggingface/transformers/blob/v4.25.1/src/transformers/models/bert/modeling_bert.py
+
+- The first function overwrites the forward pass of the encoder-decoder. Its only purpose is to take in input the token 
+  importances scores and give them to the forward pass of the encoder.
+- The second function overwrites the forward pass of the encoder. Its only purpose is to take in input the token importances
+  scores and give them to the forward pass of the actual encoder.
+- The thirs function overwrites the forward pass of the actual encoder. Its purpose is to finally use the token importances
+  scores. For each encoder block, a linear layer is applied on the tokens importances scalar scores for generating vectors
+  which are added to the block input vectors.
+
+The exact same code of huggin face has been copy-pasted. The only modifications are enlighted through comments.
+"""
+
+
 def forward_encdec_overridden_bertTiny(
     self,
     input_ids: Optional[torch.LongTensor] = None,
-    token_importances: Optional[torch.LongTensor] = None,
+    token_importances: Optional[torch.LongTensor] = None,  # TOKENS IMPORTANCES
     attention_mask: Optional[torch.FloatTensor] = None,
     decoder_input_ids: Optional[torch.LongTensor] = None,
     decoder_attention_mask: Optional[torch.BoolTensor] = None,
@@ -31,30 +48,6 @@ def forward_encdec_overridden_bertTiny(
     return_dict: Optional[bool] = None,
     **kwargs,
 ) -> Union[Tuple, Seq2SeqLMOutput]:
-    r"""
-    Returns:
-    Examples:
-    ```python
-    >>> from transformers import EncoderDecoderModel, BertTokenizer
-    >>> import torch
-    >>> tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-    >>> model = EncoderDecoderModel.from_encoder_decoder_pretrained(
-    ...     "bert-base-uncased", "bert-base-uncased"
-    ... )  # initialize Bert2Bert from pre-trained checkpoints
-    >>> # training
-    >>> model.config.decoder_start_token_id = tokenizer.cls_token_id
-    >>> model.config.pad_token_id = tokenizer.pad_token_id
-    >>> model.config.vocab_size = model.config.decoder.vocab_size
-    >>> input_ids = tokenizer("This is a really long text", return_tensors="pt").input_ids
-    >>> labels = tokenizer("This is the corresponding summary", return_tensors="pt").input_ids
-    >>> outputs = model(input_ids=input_ids, labels=labels)
-    >>> loss, logits = outputs.loss, outputs.logits
-    >>> # save and load from pretrained
-    >>> model.save_pretrained("bert2bert")
-    >>> model = EncoderDecoderModel.from_pretrained("bert2bert")
-    >>> # generation
-    >>> generated = model.generate(input_ids)
-    ```"""
 
     return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
@@ -67,7 +60,7 @@ def forward_encdec_overridden_bertTiny(
     if encoder_outputs is None:
         encoder_outputs = self.encoder(
             input_ids=input_ids,
-            token_importances=token_importances,
+            token_importances=token_importances,  # USAGE OF THE TOKENS IMPORTANCES IN THE ENCODER
             attention_mask=attention_mask,
             inputs_embeds=inputs_embeds,
             output_attentions=output_attentions,
@@ -80,7 +73,6 @@ def forward_encdec_overridden_bertTiny(
 
     encoder_hidden_states = encoder_outputs[0]
 
-    # optionally project encoder_hidden_states
     if (
         self.encoder.config.hidden_size != self.decoder.config.hidden_size
         and self.decoder.config.cross_attention_hidden_size is None
@@ -92,7 +84,6 @@ def forward_encdec_overridden_bertTiny(
             labels, self.config.pad_token_id, self.config.decoder_start_token_id
         )
 
-    # Decode
     decoder_outputs = self.decoder(
         input_ids=decoder_input_ids,
         attention_mask=decoder_attention_mask,
@@ -107,7 +98,6 @@ def forward_encdec_overridden_bertTiny(
         **kwargs_decoder,
     )
 
-    # Compute loss independent from decoder (as some shift the logits inside them)
     loss = None
     if labels is not None:
         warnings.warn(DEPRECATION_WARNING, FutureWarning)
@@ -134,10 +124,11 @@ def forward_encdec_overridden_bertTiny(
     )
 
 
+
 def forward_enc_overridden_bertTiny(
     self,
     input_ids: Optional[torch.Tensor] = None,
-    token_importances: Optional[torch.LongTensor] = None,
+    token_importances: Optional[torch.LongTensor] = None,  # TOKENS IMPORTANCES
     attention_mask: Optional[torch.Tensor] = None,
     token_type_ids: Optional[torch.Tensor] = None,
     position_ids: Optional[torch.Tensor] = None,
@@ -151,24 +142,7 @@ def forward_enc_overridden_bertTiny(
     output_hidden_states: Optional[bool] = None,
     return_dict: Optional[bool] = None,
 ) -> Union[Tuple[torch.Tensor], BaseModelOutputWithPoolingAndCrossAttentions]:
-    r"""
-    encoder_hidden_states  (`torch.FloatTensor` of shape `(batch_size, sequence_length, hidden_size)`, *optional*):
-        Sequence of hidden-states at the output of the last layer of the encoder. Used in the cross-attention if
-        the model is configured as a decoder.
-    encoder_attention_mask (`torch.FloatTensor` of shape `(batch_size, sequence_length)`, *optional*):
-        Mask to avoid performing attention on the padding token indices of the encoder input. This mask is used in
-        the cross-attention if the model is configured as a decoder. Mask values selected in `[0, 1]`:
-        - 1 for tokens that are **not masked**,
-        - 0 for tokens that are **masked**.
-    past_key_values (`tuple(tuple(torch.FloatTensor))` of length `config.n_layers` with each tuple having 4 tensors of shape `(batch_size, num_heads, sequence_length - 1, embed_size_per_head)`):
-        Contains precomputed key and value hidden states of the attention blocks. Can be used to speed up decoding.
-        If `past_key_values` are used, the user can optionally input only the last `decoder_input_ids` (those that
-        don't have their past key value states given to this model) of shape `(batch_size, 1)` instead of all
-        `decoder_input_ids` of shape `(batch_size, sequence_length)`.
-    use_cache (`bool`, *optional*):
-        If set to `True`, `past_key_values` key value states are returned and can be used to speed up decoding (see
-        `past_key_values`).
-    """
+
     output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
     output_hidden_states = (
         output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
@@ -192,7 +166,6 @@ def forward_enc_overridden_bertTiny(
     batch_size, seq_length = input_shape
     device = input_ids.device if input_ids is not None else inputs_embeds.device
 
-    # past_key_values_length
     past_key_values_length = past_key_values[0][0].shape[2] if past_key_values is not None else 0
 
     if attention_mask is None:
@@ -206,12 +179,8 @@ def forward_enc_overridden_bertTiny(
         else:
             token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=device)
 
-    # We can provide a self-attention mask of dimensions [batch_size, from_seq_length, to_seq_length]
-    # ourselves in which case we just need to make it broadcastable to all heads.
     extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(attention_mask, input_shape)
 
-    # If a 2D or 3D attention mask is provided for the cross-attention
-    # we need to make broadcastable to [batch_size, num_heads, seq_length, seq_length]
     if self.config.is_decoder and encoder_hidden_states is not None:
         encoder_batch_size, encoder_sequence_length, _ = encoder_hidden_states.size()
         encoder_hidden_shape = (encoder_batch_size, encoder_sequence_length)
@@ -221,11 +190,6 @@ def forward_enc_overridden_bertTiny(
     else:
         encoder_extended_attention_mask = None
 
-    # Prepare head mask if needed
-    # 1.0 in head_mask indicate we keep the head
-    # attention_probs has shape bsz x n_heads x N x N
-    # input head_mask has shape [num_heads] or [num_hidden_layers x num_heads]
-    # and head_mask is converted to shape [num_hidden_layers x batch x num_heads x seq_length x seq_length]
     head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
     embedding_output = self.embeddings(
@@ -237,7 +201,7 @@ def forward_enc_overridden_bertTiny(
     )
     encoder_outputs = self.encoder(
         embedding_output,
-        token_importances=token_importances,
+        token_importances=token_importances,  # USAGE OF THE TOKENS IMPORTANCES IN THE ACTUAL ENCODER
         attention_mask=extended_attention_mask,
         head_mask=head_mask,
         encoder_hidden_states=encoder_hidden_states,
@@ -270,7 +234,7 @@ logger = logging.get_logger(__name__)
 def forward_encenc_overridden_bertTiny(
     self,
     hidden_states: torch.Tensor,
-    token_importances: Optional[torch.LongTensor] = None,
+    token_importances: Optional[torch.LongTensor] = None,  # TOKENS IMPORTANCES
     attention_mask: Optional[torch.FloatTensor] = None,
     head_mask: Optional[torch.FloatTensor] = None,
     encoder_hidden_states: Optional[torch.FloatTensor] = None,
@@ -286,8 +250,10 @@ def forward_encenc_overridden_bertTiny(
     all_cross_attentions = () if output_attentions and self.config.add_cross_attention else None
 
     next_decoder_cache = () if use_cache else None
-    for i, layer_module in enumerate(self.layer):
+    for i, layer_module in enumerate(self.layer):  # Iterate through each encoder block
 
+        # USAGE OF THE TOKENS IMPORTANCES SCORES, BY APPLYING A LINEAR LAYER ON THEM AND ADD THE RESULTING VECTORS TO
+        # THE INPUT VECTORS
         hidden_states = hidden_states + layer_module.linear( token_importances )
 
         if output_hidden_states:
