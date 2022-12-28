@@ -37,7 +37,7 @@ class Model(torch.nn.Module):
     hidden states of every encoder block. More precisely, for each encoder block, the tokens importances scores are 
     transformed into vectors of the same dimensionality of the block inputs vectors using a linear layer: then, these tokens 
     importances vectors are simply added to the block inputs vectors. We have chosen to use a different linear layer for 
-    every block of the encoder: therefore there $n$ additional linear layers, where $n$ is the number of encoder blocks.
+    every block of the encoder: therefore there are $n$ additional linear layers, where $n$ is the number of encoder blocks.
 
     Both the tokens importances extractor and the encoder-decoder are built from a pre-trained transformer-based architecture.
     In particular, two kinds of pre-trained models can be specified.
