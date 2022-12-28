@@ -1,2 +1,0 @@
-- Fixare creazione di targets y per il token importances (cicli while)
-- Remove old files, rename `main_trained_redone` to `question_answering`
