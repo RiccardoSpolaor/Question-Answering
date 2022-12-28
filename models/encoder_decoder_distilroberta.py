@@ -1,3 +1,18 @@
+# Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team.
+# Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import torch
 import torch.utils.checkpoint
 from torch.nn import CrossEntropyLoss
@@ -12,20 +27,19 @@ from transformers.modeling_outputs import (
 )
 
 
-
 """
-These three functions overwrite the forward pass methods of the encoder-decoder distil roberta.
-This code is heavily based on the huggin face code, taken from https://github.com/huggingface/transformers/blob/v4.25.1/src/transformers/models/roberta/modeling_roberta.py#L698
+These three functions overwrite the forward pass methods of the encoder-decoder distilroberta.
+This code is heavily based on the Hugging Face code, taken from https://github.com/huggingface/transformers/blob/v4.25.1/src/transformers/models/roberta/modeling_roberta.py#L698
 
 - The first function overwrites the forward pass of the encoder-decoder. Its only purpose is to take in input the token 
   importances scores and give them to the forward pass of the encoder.
 - The second function overwrites the forward pass of the encoder. Its only purpose is to take in input the token importances
   scores and give them to the forward pass of the actual encoder.
-- The thirs function overwrites the forward pass of the actual encoder. Its purpose is to finally use the token importances
+- The third function overwrites the forward pass of the actual encoder. Its purpose is to finally use the token importances
   scores. For each encoder block, a linear layer is applied on the tokens importances scalar scores for generating vectors
   which are added to the block input vectors.
 
-The exact same code of huggin face has been copy-pasted. The only modifications are enlighted through comments.
+The exact same code of Hugging Face has been copy-pasted. The only modifications are enlighted through comments.
 """
 
 
