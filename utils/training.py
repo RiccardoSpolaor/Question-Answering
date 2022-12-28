@@ -54,7 +54,7 @@ def train(train_dataloader: DataLoader, val_dataloader: DataLoader, model: Model
       where it has to use the predicted importances, so at the end would be better to use the predicted importances instead.
       Furthermore, using the output of the extractor as input for the encoder-decoder allows the gradient to flow between the 
       two, potentially teaching the extractor to find more information than just the importances.
-    - Finally, turning off abruptly the supervision would introduce a discontinuity that could potentially arm the training, 
+    - Finally, turning off abruptly the supervision would introduce a discontinuity that could potentially harm the training, 
       so instead we computed the importances in input for the encoder-decoder as a linear combination of the prediction and 
       the target, and turn off the supervision gradually (following a cosine function).
 
