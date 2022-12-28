@@ -38,6 +38,38 @@ def train(train_dataloader: DataLoader, val_dataloader: DataLoader, model: Model
     For each training step, the loss is computed by adding these two losses on the current batch. Then, the backpropagation 
     using this loss is performed on all the parameters of the model.   
 
+    Going more in depth, the tokens importances scores given in input to the encoder-decoder module are not exactly the 
+    output computed by the extractor module, but they are a combination of the output of the extractor with the 
+    true span labels of the input tokens (i.e. each token has 1 if its in the span, 0 otherwise). We combine the predicted 
+    importances with the true span labels: this kind of mechanism can be seen as a teacher forcing mechanism, since we are
+    giving the ground truth as input to the model during training.
+    The combination between ground truth and the output of the extractor is simply a weigthed sum.
+    In particular, the weight related to the ground truth part (i.e. teacher forcing weight) is computed using a predefined
+    cosine schedule, such that the weight is high at the beginning of the training and then it is gradually decreased.
+    The reasons of using this approach are the following.
+    - At the beginning of the training, when the extractor has not learned anything yet, passing the importances calculated 
+      by the extractor module to the encoder-decoder module is useless: it is better to train the encoder-decoder 
+      using as inputs the actual targets of the extractor.
+    - On the other hand, training the encoder-decoder only using perfect importances does not prepare it to the actual task 
+      where it has to use the predicted importances, so at the end would be better to use the predicted importances instead.
+      Furthermore, using the output of the extractor as input for the encoder-decoder allows the gradient to flow between the 
+      two, potentially teaching the extractor to find more information than just the importances.
+    - Finally, turning off abruptly the supervision would introduce a discontinuity that could potentially arm the training, 
+      so instead we computed the importances in input for the encoder-decoder as a linear combination of the prediction and 
+      the target, and turn off the supervision gradually (following a cosine function).
+
+    The reason of that is the following.
+    Passing the importances calculated by the extractor module to the encoder-decoder module is useless until the extractor 
+    actually starts to learn something. Therefore, at the beginning of the training, is better to train the encoder-decoder 
+    using as inputs the actual targets of the extractor, which are the true span labels of the tokens (teacher forcing). 
+    On the other hand, training the encoder-decoder only using perfect importances does not prepare it to the actual task 
+    where it has to use the predicted importances, so at the end would be better to use the predicted importances instead. 
+    Furthermore, using the output of the extractor as input for the encoder-decoder allows the gradient to flow between the 
+    two, potentially teaching the extractor to find more information than just the importances. 
+    Turning off abruptly the supervision would introduce a discontinuity that could potentially arm the training, so instead 
+    we computed the inportances in input for the encoder-decoder as a linear combination of the prediction and the target, and turn 
+    off the supervision gradually following a cosine function.
+
     Parameters
     ----------
     train_dataloader : DataLoader
@@ -191,8 +223,12 @@ def train(train_dataloader: DataLoader, val_dataloader: DataLoader, model: Model
             # Compute token importances
             out1 = token_importances_extractor.forward(inputs.input_ids,inputs.attention_mask)
 
-            # Calculate factor for teacher forcing
-            forcing = 0.5 + np.cos(np.pi*(epoch*len(train_dataloader)+batch_idx)/tot_steps)/2
+            # Teacher forcing: combine the output of the tokens importances extractor with the true span labels of the tokens
+            # (i.e. `y`).
+            # First of all, the weigth of the teacher forcing is computed, using a predefined cosine schedule.
+            forcing = 0.5 + np.cos(np.pi*(epoch*len(train_dataloader)+batch_idx)/tot_steps)/2  
+            # Then, the weighted combination of the true span labels with the extractor output is performed: these are the actual
+            # importances given in input to the encoder-decoder
             importances = forcing * y + (1-forcing) * out1
 
             # Predict answer

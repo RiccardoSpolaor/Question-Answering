@@ -15,12 +15,12 @@ def build_encoder_decoder(model_name):
 
     Given the question, the passage (and, optionally, the history) and the tokens importances scores, it generates the answer.
 
-    It is a classic transformer-based encoder-decoder model. The only difference is that the token importances are given in 
-    input to the model.
-    Basically, the token importances are used in each encoder block for modifying its inputs. For each encoder block, the 
-    tokens importances scores are transformed into vectors of the same dimensionality of the block inputs using a linear layer.
-    Then, these tokens importances vectors are simply added to the block inputs vectors.
-    On the whole, we have 'n' additional linear layers, where 'n' is the number of encoder blocks.
+    It is a classic transformer-based encoder-decoder modified to make it accept the tokens importances as second input of 
+    the encoder. The importances are injected inside the model by combining them to the input hidden states of every encoder
+    block. More precisely, for each encoder block, the tokens importances scores are transformed into vectors of the same 
+    dimensionality of the block inputs vectors using a linear layer: then, these tokens importances vectors are simply added 
+    to the block inputs vectors. We have chosen to use a different linear layer for every block of the encoder: therefore 
+    there $n$ additional linear layers, where $n$ is the number of encoder blocks.
 
     This module is built from a pre-trained transformer-based encoder-decoder: either bert-tiny ('prajjwal1/bert-tiny') or 
     distil roberta ('distilroberta-base').

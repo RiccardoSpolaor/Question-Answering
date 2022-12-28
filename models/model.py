@@ -32,14 +32,14 @@ class Model(torch.nn.Module):
     Basically, for each input token, a contextual embedding vector is produced using the encoder, and then a probability score
     is computed using the linear layer.
 
-    Instead, the encoder-decoder is a classic transformer-based encoder-decoder model. The only difference is that the token
-    importances are given in input to the model.
-    Basically, the token importances are used in each encoder block for modifying its inputs. For each encoder block, the 
-    tokens importances scores are transformed into vectors of the same dimensionality of the block inputs using a linear layer.
-    Then, these tokens importances vectors are simply added to the block inputs vectors.
-    On the whole, we have 'n' additional linear layers, where 'n' is the number of encoder blocks.
+    Instead, the encoder-decoder is a classic transformer-based encoder-decoder modified to make it accept the tokens 
+    importances as second input of the encoder. The importances are injected inside the model by combining them to the input 
+    hidden states of every encoder block. More precisely, for each encoder block, the tokens importances scores are 
+    transformed into vectors of the same dimensionality of the block inputs vectors using a linear layer: then, these tokens 
+    importances vectors are simply added to the block inputs vectors. We have chosen to use a different linear layer for 
+    every block of the encoder: therefore there $n$ additional linear layers, where $n$ is the number of encoder blocks.
 
-    Both the tokens importances extractor and the encoder-decoder are built from a pre-trained transformer based architecture.
+    Both the tokens importances extractor and the encoder-decoder are built from a pre-trained transformer-based architecture.
     In particular, two kinds of pre-trained models can be specified.
     - Bert-tiny: 'prajjwal1/bert-tiny'.
       The token importances extractor is built from the bert-tiny encoder; the encoder-decoder is built from the bert-tiny 
